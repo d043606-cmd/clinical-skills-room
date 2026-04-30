@@ -422,6 +422,7 @@ textarea::placeholder{color:#94a3b8;}
         <button onclick="loadAdminData()" style="margin-left:8px;padding:2px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;font-size:.65rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;color:#64748b;">重新整理</button>
       </div>
     </div>
+  </div><!-- /admin-panel end -->
 </div><!-- /sec3 end -->
 
 <!-- ══ 借用申請表單 ══ -->
@@ -531,7 +532,7 @@ textarea::placeholder{color:#94a3b8;}
 
 <script>
 // ===== 設定 =====
-const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_URL_HERE";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzzJFb0-P434RyouplZhLcidasMJn_nDoJWk6vU5Do8HVLbzaGhlJNb7swn1Xxv31qFMg/exec";
 const ADMIN_PIN = "1234"; // ★ 請修改為你的管理員密碼
 const TRACK_URL = "https://script.google.com/macros/s/AKfycbycap6xgVCw-Q-p1_-SSglaqt0n6fMWan2MhQWLyXE78iIV8iYGXe2eba5KniJtkjq_tg/exec";
 
@@ -975,20 +976,21 @@ async function submitForm(){
     const o=document.getElementById('targetOther').value.trim();
     if(o)targetVals=targetVals.map(v=>v==='其他'?'其他：'+o:v);
   }
-  const cartItems=Object.entries(cart).map(([id,qty])=>{
+  const cartItemsArr=Object.entries(cart).map(([id,qty])=>{
     const t=TOOLS.find(x=>x.id===parseInt(id));
-    return t?`${t.name}×${qty}`:'';
-  }).filter(Boolean).join('、');
+    return t?{name:t.name,qty:qty}:null;
+  }).filter(Boolean);
+  const cartItems=cartItemsArr.map(i=>`${i.name}×${i.qty}`).join('、');
   const payload={
     action:'submitBorrow',unit,name,email,
     ext:document.getElementById('f_ext').value.trim(),
     borrowDate,returnDate,purpose:purposeVal,
-    lecturer:document.getElementById('f_lecturer').value.trim(),
+    instructor:document.getElementById('f_lecturer').value.trim(),
     topic:document.getElementById('f_topic').value.trim(),
     headcount:parseInt(headcount),
-    jobTypes:jobTypes.join('、'),
-    targets:targetVals.join('、'),
-    cartItems,cartDetail:JSON.stringify(cart),
+    jobTypes:jobTypes,
+    targets:targetVals,
+    cart:cartItemsArr,
     submitTime:new Date().toLocaleString('zh-TW')
   };
   const btn=document.getElementById('submitBtn');
@@ -997,9 +999,12 @@ async function submitForm(){
     if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL==="YOUR_APPS_SCRIPT_URL_HERE"){
       await new Promise(r=>setTimeout(r,700));
     }else{
-      const form=new FormData();
-      Object.entries(payload).forEach(([k,v])=>form.append(k,v));
-      await fetch(APPS_SCRIPT_URL,{method:'POST',body:form,mode:'no-cors'});
+      await fetch(APPS_SCRIPT_URL,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify(payload)
+      });
     }
     document.getElementById('formSection').classList.remove('show');
     document.getElementById('cartBar').classList.remove('show');
