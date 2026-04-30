@@ -999,11 +999,11 @@ async function submitForm(){
     if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL==="YOUR_APPS_SCRIPT_URL_HERE"){
       await new Promise(r=>setTimeout(r,700));
     }else{
-      await fetch(APPS_SCRIPT_URL,{
-        method:'POST',
-        mode:'no-cors',
-        headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify(payload)
+      // 用 GET + query string 傳資料，避免 CORS 問題
+      const params = new URLSearchParams({data: JSON.stringify(payload)});
+      await fetch(APPS_SCRIPT_URL + '?' + params.toString(), {
+        method:'GET',
+        mode:'no-cors'
       });
     }
     document.getElementById('formSection').classList.remove('show');
