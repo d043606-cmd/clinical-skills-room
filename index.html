@@ -451,10 +451,10 @@ textarea::placeholder{color:#94a3b8;}
     <div class="form-group full">
       <label class="form-label">借用用途 <span class="req">*</span></label>
       <div class="radio-group">
-        <label class="radio-item"><input type="radio" name="purpose" value="教學"><label>教學</label></label>
-        <label class="radio-item"><input type="radio" name="purpose" value="測驗"><label>測驗</label></label>
-        <label class="radio-item"><input type="radio" name="purpose" value="練習"><label>練習</label></label>
-        <label class="radio-item"><input type="radio" name="purpose" value="其他" onchange="toggleOther('purposeOther',this)"><label>其他</label></label>
+        <label class="radio-item"><input type="checkbox" name="purpose" value="教學"><label>教學</label></label>
+        <label class="radio-item"><input type="checkbox" name="purpose" value="測驗"><label>測驗</label></label>
+        <label class="radio-item"><input type="checkbox" name="purpose" value="練習"><label>練習</label></label>
+        <label class="radio-item"><input type="checkbox" name="purpose" value="其他" onchange="toggleOther('purposeOther',this)"><label>其他</label></label>
       </div>
       <input type="text" class="form-input other-input" id="purposeOther" placeholder="請說明用途">
     </div>
@@ -957,7 +957,7 @@ async function submitForm(){
   const borrowDate=document.getElementById('f_borrow_date').value;
   const returnDate=document.getElementById('f_return_date').value;
   const headcount=document.getElementById('f_headcount').value;
-  const purpose=document.querySelector('input[name="purpose"]:checked');
+  const purposes=Array.from(document.querySelectorAll('input[name="purpose"]:checked'));
   const jobTypes=[...document.querySelectorAll('input[name="job"]:checked')].map(c=>c.value);
   const targets=[...document.querySelectorAll('input[name="target"]:checked')].map(c=>c.value);
   if(!unit){alert('請填寫單位');return;}
@@ -965,12 +965,13 @@ async function submitForm(){
   if(!email||!email.includes('@')){alert('請填寫正確電子郵件');return;}
   if(!borrowDate){alert('請選擇借用日期');return;}
   if(!returnDate||returnDate<borrowDate){alert('請選擇正確歸還日期');return;}
-  if(!purpose){alert('請選擇借用用途');return;}
+  if(!purposes.length){alert('請選擇借用用途');return;}
   if(!headcount||parseInt(headcount)<1){alert('請填寫使用人次');return;}
   if(!jobTypes.length){alert('請選擇使用職類別');return;}
   if(!targets.length){alert('請選擇使用對象');return;}
   if(!Object.keys(cart).length){alert('請先選擇要借用的教具');return;}
-  let purposeVal=purpose.value==='其他'?'其他：'+(document.getElementById('purposeOther').value.trim()||'其他'):purpose.value;
+  let purposeVals=purposes.map(p=>p.value==='其他'?'其他：'+(document.getElementById('purposeOther').value.trim()||'其他'):p.value);
+  let purposeVal=purposeVals.join('、');
   let targetVals=[...targets];
   if(document.querySelector('input[name="target"][value="其他"]:checked')){
     const o=document.getElementById('targetOther').value.trim();
@@ -1112,15 +1113,17 @@ async function loadAdminData(){
     return;
   }
   try{
-    const res=await fetch(APPS_SCRIPT_URL+"?action=getPendingReturns",{method:"GET",mode:"cors"});
+    const res=await fetch(APPS_SCRIPT_URL+"?action=getPendingReturns",{method:"GET",mode:"cors",redirect:"follow"});
     const data=await res.json();
-    renderAdminList(data.records||[]);
-    initCalendar(data.records||[]);
-    stockData = buildStockData(data.records||[]);
+    renderAdminList(data.items||[]);
+    initCalendar(data.items||[]);
+    stockData = buildStockData(data.items||[]);
     renderStockTable();
-    document.getElementById('statBorrowing').textContent=data.stats?.borrowing||0;
-    document.getElementById('statToday').textContent=data.stats?.today||0;
-    document.getElementById('statOverdue').textContent=data.stats?.overdue||0;
+    const items=data.items||[];
+    const today2=new Date().toISOString().split('T')[0];
+    document.getElementById('statBorrowing').textContent=items.length;
+    document.getElementById('statToday').textContent=items.filter(r=>r.returnDate===today2).length;
+    document.getElementById('statOverdue').textContent=items.filter(r=>r.overdue).length;
   }catch(e){
     document.getElementById('returnList').innerHTML='<div class="admin-empty">載入失敗，請檢查網路連線</div>';
   }
