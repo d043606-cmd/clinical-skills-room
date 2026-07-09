@@ -1162,17 +1162,24 @@ async function confirmReturn(token,btn){
     return;
   }
   try{
-    const form=new FormData();
-    form.append('action','adminConfirmReturn');
-    form.append('token',token);
-    form.append('adminName',currentAdminName);
-    await fetch(APPS_SCRIPT_URL,{method:'POST',body:form,mode:'no-cors'});
-    btn.textContent='✅ 已確認歸還，庫存已更新';
-    btn.className='btn-confirm-return done';
+    const res=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      body:JSON.stringify({action:'returnItem',token:token})
+    });
+    const result=await res.json();
+    if(result.success){
+      btn.textContent='✅ 已確認歸還，庫存已更新';
+      btn.className='btn-confirm-return done';
+      setTimeout(loadAdminData,800); // 重新載入清單與庫存，確保畫面同步
+    }else{
+      btn.textContent='確認已點收歸還';
+      btn.disabled=false;
+      alert('操作失敗：'+(result.message||'未知錯誤'));
+    }
   }catch(e){
     btn.textContent='確認已點收歸還';
     btn.disabled=false;
-    alert('操作失敗，請重試');
+    alert('操作失敗，請重試：'+e.toString());
   }
 }
 
