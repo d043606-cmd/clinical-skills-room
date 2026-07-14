@@ -658,7 +658,7 @@ const QUICK_TAGS=Object.keys(SEARCH_MAP);
 const ALL_CATS=["全部",...new Set(TOOLS.map(t=>t.cat))];
 
 // ===== 狀態 =====
-let cart={}, liveStock={...STOCK};
+let cart={}, liveStock={...STOCK}, liveMaxStock={};
 let browseInited=false, browseFilterVal="全部";
 let pinBuf="", adminLoggedIn=false, currentAdminName="";
 
@@ -695,13 +695,17 @@ async function loadLiveStock(){
     // 不是直接可用的 {id:數量} 物件，這裡依教具名稱比對 TOOLS，換算成 liveStock[id]
     if(data.success && Array.isArray(data.items)){
       const byName = {};
+      const byNameMax = {};
       data.items.forEach(row=>{
         const name = row['教具名稱'];
         const avail = row['目前可借']; // 試算表實際欄名（原本誤寫成「可借數量」）
+        const max = row['最大庫存'];
         if(name!==undefined && avail!==undefined) byName[name]=Number(avail);
+        if(name!==undefined && max!==undefined) byNameMax[name]=Number(max);
       });
       TOOLS.forEach(t=>{
         if(byName[t.name]!==undefined) liveStock[t.id]=byName[t.name];
+        if(byNameMax[t.name]!==undefined) liveMaxStock[t.id]=byNameMax[t.name]; // 以試算表真實的「最大庫存」為準，不再用前端寫死的 STOCK 常數
       });
     }
   }catch(e){}
@@ -1325,7 +1329,7 @@ function buildStockData(records){
   const today = todayTaipei();
   const list = TOOLS.map(t => {
     const available = liveStock[t.id] !== undefined ? liveStock[t.id] : (STOCK[t.id]||1);
-    const maxStock = STOCK[t.id] || 1;
+    const maxStock = liveMaxStock[t.id] !== undefined ? liveMaxStock[t.id] : (STOCK[t.id]||1); // 優先用試算表真實的「最大庫存」
     const borrowers = records.filter(r => r.items && r.items.includes(t.name));
     let status = available > 0 ? 'ok' : 'out';
     let borrowerName = '—', returnDate = '—';
