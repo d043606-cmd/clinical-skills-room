@@ -662,8 +662,15 @@ let cart={}, liveStock={...STOCK};
 let browseInited=false, browseFilterVal="全部";
 let pinBuf="", adminLoggedIn=false, currentAdminName="";
 
+// 取得台灣時區的「今天」日期字串（yyyy-mm-dd）
+// 注意：不要用 new Date().toISOString().split('T')[0]，那會先轉成 UTC 時間，
+// 台灣時間午夜到早上8點之間會誤判成前一天，造成當天借用的教具被錯判逾期
+function todayTaipei(){
+  return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Taipei'});
+}
+
 // 初始化
-const today=new Date().toISOString().split('T')[0];
+const today=todayTaipei();
 document.getElementById('f_borrow_date').value=today;
 document.getElementById('f_borrow_date').min=today;
 document.getElementById('f_return_date').min=today;
@@ -1130,7 +1137,7 @@ async function loadAdminData(){
     stockData = buildStockData(data.items||[]);
     renderStockTable();
     const items=data.items||[];
-    const today2=new Date().toISOString().split('T')[0];
+    const today2=todayTaipei();
     document.getElementById('statBorrowing').textContent=items.length;
     document.getElementById('statToday').textContent=items.filter(r=>r.returnDate===today2).length;
     document.getElementById('statOverdue').textContent=items.filter(r=>r.overdue).length;
@@ -1144,7 +1151,7 @@ function renderAdminList(records){
     document.getElementById('returnList').innerHTML='<div class="admin-empty">✅ 目前沒有待確認歸還的教具</div>';
     return;
   }
-  const today=new Date().toISOString().split('T')[0];
+  const today=todayTaipei();
   document.getElementById('returnList').innerHTML=records.map(r=>{
     const isOverdue=r.overdue||(r.returnDate<today);
     const overdueDays=r.overdueDays||Math.max(0,Math.floor((new Date(today)-new Date(r.returnDate))/86400000));
@@ -1315,7 +1322,7 @@ function setStockFilter(f){
 }
 
 function buildStockData(records){
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayTaipei();
   const list = TOOLS.map(t => {
     const available = liveStock[t.id] !== undefined ? liveStock[t.id] : (STOCK[t.id]||1);
     const maxStock = STOCK[t.id] || 1;
@@ -1439,7 +1446,7 @@ function renderCalendar(){
 
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = todayTaipei();
 
   // 建立事件日期 map
   const eventMap = {};
@@ -1495,7 +1502,7 @@ function showCalDetail(dateStr){
   const evts = [];
   calEvents.forEach(r => {
     if(r.returnDate === dateStr){
-      const isOverdue = r.returnDate < new Date().toISOString().split('T')[0];
+      const isOverdue = r.returnDate < todayTaipei();
       evts.push({label: isOverdue?'🚨 逾期未還':'⚠️ 今日到期', record:r, color: isOverdue?'#ef4444':'#f59e0b'});
     }
     if(r.borrowDate === dateStr){
