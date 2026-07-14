@@ -1,4 +1,3 @@
-<!-- redeploy trigger -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -685,7 +684,19 @@ async function loadLiveStock(){
   try{
     const res=await fetch(APPS_SCRIPT_URL+"?action=getStock",{method:"GET",mode:"cors"});
     const data=await res.json();
-    if(data.stock) Object.assign(liveStock,data.stock);
+    // 後端回傳的是「即時庫存」工作表的列陣列（items），欄位為教具名稱/可借數量，
+    // 不是直接可用的 {id:數量} 物件，這裡依教具名稱比對 TOOLS，換算成 liveStock[id]
+    if(data.success && Array.isArray(data.items)){
+      const byName = {};
+      data.items.forEach(row=>{
+        const name = row['教具名稱'];
+        const avail = row['可借數量'];
+        if(name!==undefined && avail!==undefined) byName[name]=Number(avail);
+      });
+      TOOLS.forEach(t=>{
+        if(byName[t.name]!==undefined) liveStock[t.id]=byName[t.name];
+      });
+    }
   }catch(e){}
 }
 
@@ -1108,7 +1119,10 @@ async function loadAdminData(){
     return;
   }
   try{
-    const res=await fetch(APPS_SCRIPT_URL+"?action=getPendingReturns",{method:"GET",mode:"cors",redirect:"follow"});
+    const [res] = await Promise.all([
+      fetch(APPS_SCRIPT_URL+"?action=getPendingReturns",{method:"GET",mode:"cors",redirect:"follow"}),
+      loadLiveStock() // 同步刷新即時庫存，避免確認歸還後數字沒跟著變
+    ]);
     const data=await res.json();
     renderAdminList(data.items||[]);
     initCalendar(data.items||[]);
@@ -1169,9 +1183,7 @@ async function confirmReturn(token,btn){
     });
     const result=await res.json();
     if(result.success){
-      btn.textContent='✅ 已確認歸還，庫存已更新';
-      btn.className='btn-confirm-return done';
-      setTimeout(loadAdminData,800); // 重新載入清單與庫存，確保畫面同步
+      showConfirmedCard(token,btn);
     }else{
       btn.textContent='確認已點收歸還';
       btn.disabled=false;
@@ -1181,6 +1193,60 @@ async function confirmReturn(token,btn){
     btn.textContent='確認已點收歸還';
     btn.disabled=false;
     alert('操作失敗，請重試：'+e.toString());
+  }
+}
+
+// 確認歸還成功後，把按鈕換成「完成＋復原」，並提供 10 分鐘內可撤銷的視窗
+function showConfirmedCard(token,btn){
+  const wrap=document.createElement('div');
+  wrap.style.display='flex';
+  wrap.style.gap='8px';
+  wrap.style.marginTop='4px';
+
+  const doneBtn=document.createElement('button');
+  doneBtn.className='btn-confirm-return done';
+  doneBtn.style.flex='1';
+  doneBtn.disabled=true;
+  doneBtn.textContent='✅ 已確認歸還，庫存已更新';
+
+  const undoBtn=document.createElement('button');
+  undoBtn.className='btn-confirm-return';
+  undoBtn.style.flex='0 0 auto';
+  undoBtn.style.background='#f8fafc';
+  undoBtn.style.color='#64748b';
+  undoBtn.style.border='1px solid #e2e8f0';
+  undoBtn.textContent='↩️ 復原';
+  undoBtn.onclick=()=>undoConfirmReturn(token,wrap,btn);
+
+  btn.replaceWith(wrap);
+  wrap.appendChild(doneBtn);
+  wrap.appendChild(undoBtn);
+
+  // 重新整理清單與庫存（背景刷新，不影響這張卡片上的按鈕，因為卡片是整批重繪的）
+  setTimeout(loadAdminData,800);
+
+  // 10 分鐘後自動隱藏「復原」按鈕，避免誤觸太久之後的紀錄
+  setTimeout(()=>{ if(undoBtn.isConnected) undoBtn.style.display='none'; },10*60*1000);
+}
+
+async function undoConfirmReturn(token,wrap,originalBtn){
+  if(!confirm('確定要復原這筆歸還紀錄嗎？狀態將改回「待確認」，庫存也會扣回借出中。'))return;
+  wrap.innerHTML='<div style="flex:1;text-align:center;color:#64748b;font-size:.85rem;padding:8px;">⏳ 復原中…</div>';
+  try{
+    const res=await fetch(APPS_SCRIPT_URL,{
+      method:'POST',
+      body:JSON.stringify({action:'undoReturn',token:token})
+    });
+    const result=await res.json();
+    if(result.success){
+      loadAdminData(); // 直接整批重新載入，該筆會重新出現在待確認清單
+    }else{
+      alert('復原失敗：'+(result.message||'未知錯誤'));
+      loadAdminData();
+    }
+  }catch(e){
+    alert('復原失敗，請重試：'+e.toString());
+    loadAdminData();
   }
 }
 
