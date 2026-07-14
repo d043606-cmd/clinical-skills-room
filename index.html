@@ -690,7 +690,7 @@ async function loadLiveStock(){
       const byName = {};
       data.items.forEach(row=>{
         const name = row['教具名稱'];
-        const avail = row['可借數量'];
+        const avail = row['目前可借']; // 試算表實際欄名（原本誤寫成「可借數量」）
         if(name!==undefined && avail!==undefined) byName[name]=Number(avail);
       });
       TOOLS.forEach(t=>{
