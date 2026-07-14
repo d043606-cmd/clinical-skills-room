@@ -1124,6 +1124,7 @@ async function loadAdminData(){
       loadLiveStock() // 同步刷新即時庫存，避免確認歸還後數字沒跟著變
     ]);
     const data=await res.json();
+    lastPendingRecords = data.items||[]; // 快取目前清單，供確認歸還後局部刷新庫存用
     renderAdminList(data.items||[]);
     initCalendar(data.items||[]);
     stockData = buildStockData(data.items||[]);
@@ -1222,11 +1223,24 @@ function showConfirmedCard(token,btn){
   wrap.appendChild(doneBtn);
   wrap.appendChild(undoBtn);
 
-  // 重新整理清單與庫存（背景刷新，不影響這張卡片上的按鈕，因為卡片是整批重繪的）
-  setTimeout(loadAdminData,800);
+  // 只局部刷新庫存數字（從快取清單中移除這筆，並重抓即時庫存），
+  // 不整批重繪「待確認歸還」清單，避免剛顯示的復原按鈕被立刻清掉
+  lastPendingRecords = lastPendingRecords.filter(r=>r.token!==token);
+  loadLiveStock().then(()=>{
+    stockData = buildStockData(lastPendingRecords);
+    renderStockTable();
+  });
+  const items=lastPendingRecords;
+  document.getElementById('statBorrowing').textContent=items.length;
+  document.getElementById('statOverdue').textContent=items.filter(r=>r.overdue).length;
 
-  // 10 分鐘後自動隱藏「復原」按鈕，避免誤觸太久之後的紀錄
-  setTimeout(()=>{ if(undoBtn.isConnected) undoBtn.style.display='none'; },10*60*1000);
+  // 10 分鐘後自動隱藏「復原」按鈕，並把這張卡片從畫面移除、同步整批重新整理清單
+  setTimeout(()=>{
+    if(undoBtn.isConnected){
+      undoBtn.style.display='none';
+      loadAdminData();
+    }
+  },10*60*1000);
 }
 
 async function undoConfirmReturn(token,wrap,originalBtn){
@@ -1285,6 +1299,7 @@ document.addEventListener('keydown', e => { if(e.key==='Escape') closeLightbox()
 // ===== 庫存總表 =====
 let stockFilter = 'all';
 let stockData = [];
+let lastPendingRecords = [];
 
 function setStockFilter(f){
   stockFilter = f;
