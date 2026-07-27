@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>臨床技能教室 使用統計儀表板</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F3F2F1;
+    --card:#FFFFFF;
+    --line:#E1DFDD;
+    --text:#252423;
+    --text-sub:#605E5C;
+    --accent:#F2C811;
+    --accent-dark:#B88600;
+    --c1:#01B8AA; --c2:#374649; --c3:#FD625E; --c4:#F2C80F;
+    --c5:#5F6B6D; --c6:#8AD4EB; --c7:#FE9666; --c8:#A66999;
+    --radius:6px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+    font-size:14px;
+  }
+  #app{display:flex; min-height:100vh;}
+
+  /* ===== 左側篩選（Slicer）面板 ===== */
+  #sidebar{
+    width:230px; flex:0 0 230px; background:var(--card);
+    border-right:1px solid var(--line); padding:20px 16px;
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  #sidebar h1{
+    font-size:16px; font-weight:600; margin:0 0 4px;
+  }
+  #sidebar .sub{color:var(--text-sub); font-size:12px; margin-bottom:20px;}
+  .slicer-title{
+    font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--text-sub);
+    text-transform:uppercase; margin:18px 0 8px;
+  }
+  .slicer-list{display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto;}
+  .slicer-item{
+    padding:6px 10px; border-radius:4px; cursor:pointer; font-size:13px;
+    border:1px solid transparent; user-select:none;
+  }
+  .slicer-item:hover{background:#FAF9F8;}
+  .slicer-item.active{
+    background:#FFF8E1; border-color:var(--accent); font-weight:600; color:var(--accent-dark);
+  }
+  #clearFilters{
+    margin-top:16px; width:100%; padding:8px; font-size:12px;
+    background:var(--bg); border:1px solid var(--line); border-radius:4px; cursor:pointer;
+  }
+  #clearFilters:hover{background:#EDEBE9;}
+
+  /* ===== 主畫面 ===== */
+  #main{flex:1; padding:20px 24px; min-width:0;}
+  #breadcrumb{font-size:13px; color:var(--text-sub); margin-bottom:14px;}
+  #breadcrumb b{color:var(--text);}
+
+  .kpi-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px;}
+  .kpi-card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 16px; border-top:3px solid var(--accent);
+  }
+  .kpi-card .num{font-size:26px; font-weight:700;}
+  .kpi-card .label{font-size:12px; color:var(--text-sub); margin-top:2px;}
+
+  .grid{display:grid; grid-template-columns:repeat(2, 1fr); gap:14px;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 16px;
+  }
+  .card h3{margin:0 0 10px; font-size:13px; font-weight:600; color:var(--text);}
+  .card .chart-wrap{position:relative; height:230px;}
+  .card.wide{grid-column:1 / -1;}
+  .empty-note{color:var(--text-sub); font-size:12px; text-align:center; padding:30px 0;}
+
+  #status{color:var(--text-sub); font-size:13px; padding:40px; text-align:center;}
+  #status a{color:var(--accent-dark);}
+
+  table.detail{width:100%; border-collapse:collapse; font-size:12px;}
+  table.detail th, table.detail td{border-bottom:1px solid var(--line); padding:6px 8px; text-align:left;}
+  table.detail th{color:var(--text-sub); font-weight:600;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <h1>臨床技能教室</h1>
+    <div class="sub">使用統計儀表板</div>
+
+    <div class="slicer-title">年月</div>
+    <div id="monthSlicer" class="slicer-list"></div>
+
+    <div class="slicer-title">使用職類</div>
+    <div id="jobSlicer" class="slicer-list"></div>
+
+    <button id="clearFilters">清除篩選</button>
+  </div>
+
+  <div id="main">
+    <div id="status">讀取資料中…</div>
+    <div id="content" style="display:none;">
+      <div id="breadcrumb"></div>
+
+      <div class="kpi-row" id="kpiRow"></div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>各教室使用人次</h3>
+          <div class="chart-wrap"><canvas id="chartRoom"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>使用職類人次</h3>
+          <div class="chart-wrap"><canvas id="chartJob"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>教具使用人次 TOP 10</h3>
+          <div class="chart-wrap"><canvas id="chartEquip"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>急救教具使用職類人次</h3>
+          <div class="chart-wrap"><canvas id="chartFirstAid"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>外借教具品項 TOP 10（使用人次）</h3>
+          <div class="chart-wrap"><canvas id="chartLoanEquip"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>外借使用職類人次</h3>
+          <div class="chart-wrap"><canvas id="chartLoanJob"></canvas></div>
+        </div>
+        <div class="card wide">
+          <h3>使用滿意度</h3>
+          <div id="satisfactionBlock"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ 設定：填入 Apps Script Web App 的 /exec 網址 ============
+const CONFIG = {
+  API_URL: 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE'
+};
+// ======================================================================
+
+const COLORS = ['#01B8AA','#374649','#FD625E','#F2C80F','#5F6B6D','#8AD4EB','#FE9666','#A66999','#B8B5B2','#D64550'];
+
+let DATA = null;
+let selectedMonth = null;   // 例如 '2025-04'
+let selectedJob = null;     // 例如 '護理師'
+let charts = {};
+
+async function init() {
+  const statusEl = document.getElementById('status');
+  try {
+    if (!https://script.google.com/macros/s/AKfycbw5er71Tz3Wp1g4Eessrl1f0oEw_oLNqrVSJB_3b45su95BNQGr0cOcpmclwDiMzhKz/exec || CONFIG.API_URL.indexOf('PASTE_YOUR') > -1) {
+      statusEl.innerHTML = '尚未設定 API_URL。請把 Apps Script 部署後的 <code>/exec</code> 網址填入 dashboard.html 最下方 CONFIG.API_URL 後重新整理。';
+      return;
+    }
+    const res = await fetch(CONFIG.API_URL);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    DATA = json;
+    if (!DATA.months || DATA.months.length === 0) {
+      statusEl.textContent = '目前沒有可顯示的資料。';
+      return;
+    }
+    selectedMonth = DATA.months[DATA.months.length - 1]; // 預設顯示最新月份
+    buildMonthSlicer();
+    buildJobSlicer();
+    render();
+    statusEl.style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  } catch (err) {
+    statusEl.innerHTML = '資料讀取失敗：' + err.message + '<br>請確認 Apps Script 已部署為網頁應用程式，且存取權限允許讀取。';
+  }
+}
+
+function buildMonthSlicer() {
+  const wrap = document.getElementById('monthSlicer');
+  wrap.innerHTML = '';
+  DATA.months.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'slicer-item' + (m === selectedMonth ? ' active' : '');
+    div.textContent = formatMonthLabel(m);
+    div.onclick = () => { selectedMonth = m; buildJobSlicer(); render(); highlightSlicers(); };
+    div.dataset.month = m;
+    wrap.appendChild(div);
+  });
+}
+
+function buildJobSlicer() {
+  const wrap = document.getElementById('jobSlicer');
+  wrap.innerHTML = '';
+  const monthData = DATA.byMonth[selectedMonth];
+  const jobs = monthData ? Object.keys(monthData.byJobCategory).sort() : [];
+  if (selectedJob && jobs.indexOf(selectedJob) === -1) selectedJob = null;
+  jobs.forEach(j => {
+    const div = document.createElement('div');
+    div.className = 'slicer-item' + (j === selectedJob ? ' active' : '');
+    div.textContent = j;
+    div.onclick = () => {
+      selectedJob = (selectedJob === j) ? null : j; // 再點一次取消篩選
+      render();
+      highlightSlicers();
+    };
+    wrap.appendChild(div);
+  });
+}
+
+function highlightSlicers() {
+  document.querySelectorAll('#monthSlicer .slicer-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.month === selectedMonth);
+  });
+  document.querySelectorAll('#jobSlicer .slicer-item').forEach(el => {
+    el.classList.toggle('active', el.textContent === selectedJob);
+  });
+}
+
+document.getElementById('clearFilters').onclick = () => {
+  selectedJob = null;
+  render();
+  highlightSlicers();
+};
+
+function formatMonthLabel(m) {
+  const [y, mo] = m.split('-');
+  return y + '年' + parseInt(mo, 10) + '月';
+}
+
+function currentSlice() {
+  const monthData = DATA.byMonth[selectedMonth];
+  if (!monthData) return null;
+  if (selectedJob && monthData.byJobCategory[selectedJob]) {
+    const jb = monthData.byJobCategory[selectedJob];
+    return {
+      roomUsage: jb.roomUsage,
+      equipmentUsage: jb.equipmentUsage,
+      jobCategoryUsage: { [selectedJob]: sumValues(jb.roomUsage) },
+      firstAidByJobCategory: { [selectedJob]: jb.firstAidCount },
+      loanByEquipment: jb.loanByEquipment,
+      loanByJobCategory: { [selectedJob]: jb.loanCount },
+      satisfaction: jb.satisfaction
+    };
+  }
+  return monthData;
+}
+
+function sumValues(obj) {
+  return Object.values(obj || {}).reduce((a, b) => a + b, 0);
+}
+
+function render() {
+  const slice = currentSlice();
+  if (!slice) return;
+
+  document.getElementById('breadcrumb').innerHTML =
+    '<b>' + formatMonthLabel(selectedMonth) + '</b>' +
+    (selectedJob ? ' ﹥ <b>' + selectedJob + '</b>' : ' ﹥ 全部職類');
+
+  renderKPI(slice);
+  renderBar('chartRoom', slice.roomUsage, '人次');
+  renderPie('chartJob', slice.jobCategoryUsage);
+  renderTopBarH('chartEquip', slice.equipmentUsage, 10);
+  renderBar('chartFirstAid', slice.firstAidByJobCategory, '人次');
+  renderTopBarH('chartLoanEquip', slice.loanByEquipment, 10);
+  renderBar('chartLoanJob', slice.loanByJobCategory, '人次');
+  renderSatisfaction(slice.satisfaction);
+}
+
+function renderKPI(slice) {
+  const roomTotal = sumValues(slice.roomUsage);
+  const loanTotal = sumValues(slice.loanByJobCategory);
+  const equipKinds = Object.keys(slice.equipmentUsage || {}).length;
+  const satOverall = slice.satisfaction ? slice.satisfaction.overallAvg : null;
+
+  const kpis = [
+    { num: roomTotal, label: '教室使用人次' },
+    { num: loanTotal, label: '外借使用人次' },
+    { num: equipKinds, label: '使用教具品項數' },
+    { num: satOverall !== null && satOverall !== undefined ? satOverall.toFixed(2) : '—', label: '滿意度總平均' }
+  ];
+
+  const row = document.getElementById('kpiRow');
+  row.innerHTML = '';
+  kpis.forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'kpi-card';
+    div.innerHTML = '<div class="num">' + k.num + '</div><div class="label">' + k.label + '</div>';
+    row.appendChild(div);
+  });
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function emptyIfNoData(canvasId, obj) {
+  const canvas = document.getElementById(canvasId);
+  const hasData = obj && Object.keys(obj).length > 0;
+  canvas.style.display = hasData ? 'block' : 'none';
+  let note = canvas.parentElement.querySelector('.empty-note');
+  if (!hasData) {
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'empty-note';
+      note.textContent = '本篩選範圍暫無資料';
+      canvas.parentElement.appendChild(note);
+    }
+  } else if (note) {
+    note.remove();
+  }
+  return hasData;
+}
+
+function renderBar(canvasId, obj, unitLabel) {
+  destroyChart(canvasId);
+  if (!emptyIfNoData(canvasId, obj)) return;
+  const labels = Object.keys(obj);
+  const values = labels.map(l => obj[l]);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: unitLabel, data: values, backgroundColor: COLORS[0], borderRadius: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+}
+
+function renderTopBarH(canvasId, obj, topN) {
+  destroyChart(canvasId);
+  if (!emptyIfNoData(canvasId, obj)) return;
+  const entries = Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, topN);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels: entries.map(e => e[0]),
+      datasets: [{ data: entries.map(e => e[1]), backgroundColor: COLORS[2], borderRadius: 3 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+}
+
+function renderPie(canvasId, obj) {
+  destroyChart(canvasId);
+  if (!emptyIfNoData(canvasId, obj)) return;
+  const labels = Object.keys(obj);
+  const values = labels.map(l => obj[l]);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: labels.map((_, i) => COLORS[i % COLORS.length]) }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
+    }
+  });
+}
+
+function renderSatisfaction(sat) {
+  const wrap = document.getElementById('satisfactionBlock');
+  if (!sat || !sat.responseCount) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無滿意度回覆</div>';
+    return;
+  }
+  const items = [
+    { label: '場地平均滿意度', val: sat.venueAvg },
+    { label: '設備平均滿意度', val: sat.equipAvg },
+    { label: '總平均分數', val: sat.overallAvg }
+  ];
+  wrap.innerHTML = '<div class="kpi-row">' + items.map(i =>
+    '<div class="kpi-card"><div class="num">' + (i.val !== null ? i.val.toFixed(2) : '—') +
+    '</div><div class="label">' + i.label + '（' + sat.responseCount + ' 筆題項回覆）</div></div>'
+  ).join('') + '</div>';
+}
+
+init();
+</script>
+</body>
+</html>
