@@ -145,7 +145,7 @@
 <script>
 // ============ 設定：填入 Apps Script Web App 的 /exec 網址 ============
 const CONFIG = {
-  API_URL: 'PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE'
+  API_URL: 'https://script.google.com/macros/s/AKfycbw5er71Tz3Wp1g4Eessrl1f0oEw_oLNqrVSJB_3b45su95BNQGr0cOcpmclwDiMzhKz/exec'
 };
 // ======================================================================
 
@@ -159,7 +159,7 @@ let charts = {};
 async function init() {
   const statusEl = document.getElementById('status');
   try {
-    if (!https://script.google.com/macros/s/AKfycbw5er71Tz3Wp1g4Eessrl1f0oEw_oLNqrVSJB_3b45su95BNQGr0cOcpmclwDiMzhKz/exec || CONFIG.API_URL.indexOf('PASTE_YOUR') > -1) {
+    if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('PASTE_YOUR') > -1) {
       statusEl.innerHTML = '尚未設定 API_URL。請把 Apps Script 部署後的 <code>/exec</code> 網址填入 dashboard.html 最下方 CONFIG.API_URL 後重新整理。';
       return;
     }
