@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>臨床技能教室 使用統計儀表板</title>
 <script>
-/* Chart.js v4.4.3 — 內嵌版本，避免院內網路或瀏覽器封鎖外部 CDN（cdnjs.cloudflare.com）導致圖表無法載入 */
 /*!
  * Chart.js v4.4.3
  * https://www.chartjs.org
@@ -24,16 +23,18 @@
 </script>
 <style>
   :root{
-    --bg:#F3F2F1;
+    --bg:#F2F1EF;
     --card:#FFFFFF;
-    --line:#E1DFDD;
-    --text:#252423;
-    --text-sub:#605E5C;
-    --accent:#F2C811;
-    --accent-dark:#B88600;
-    --c1:#01B8AA; --c2:#374649; --c3:#FD625E; --c4:#F2C80F;
-    --c5:#5F6B6D; --c6:#8AD4EB; --c7:#FE9666; --c8:#A66999;
-    --radius:6px;
+    --line:#ECEAE7;
+    --text:#2B2B2B;
+    --text-sub:#8B8B8B;
+    --blue:#3E6FD9;
+    --orange:#F0883E;
+    --gold:#F0B93E;
+    --purple:#8B6FD9;
+    --teal:#2FA98C;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(20,20,20,.04), 0 2px 10px rgba(20,20,20,.05);
   }
   *{box-sizing:border-box;}
   body{
@@ -45,62 +46,97 @@
 
   /* ===== 左側篩選（Slicer）面板 ===== */
   #sidebar{
-    width:230px; flex:0 0 230px; background:var(--card);
+    width:220px; flex:0 0 220px; background:var(--card);
     border-right:1px solid var(--line); padding:20px 16px;
     position:sticky; top:0; height:100vh; overflow-y:auto;
   }
-  #sidebar h1{
-    font-size:16px; font-weight:600; margin:0 0 4px;
-  }
+  #sidebar h1{ font-size:16px; font-weight:700; margin:0 0 4px; }
   #sidebar .sub{color:var(--text-sub); font-size:12px; margin-bottom:20px;}
   .slicer-title{
     font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--text-sub);
     text-transform:uppercase; margin:18px 0 8px;
   }
-  .slicer-list{display:flex; flex-direction:column; gap:4px; max-height:260px; overflow-y:auto;}
+  .slicer-list{display:flex; flex-direction:column; gap:3px; max-height:260px; overflow-y:auto;}
   .slicer-item{
-    padding:6px 10px; border-radius:4px; cursor:pointer; font-size:13px;
+    padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px;
     border:1px solid transparent; user-select:none;
   }
-  .slicer-item:hover{background:#FAF9F8;}
-  .slicer-item.active{
-    background:#FFF8E1; border-color:var(--accent); font-weight:600; color:var(--accent-dark);
-  }
+  .slicer-item:hover{background:#F7F6F4;}
+  .slicer-item.active{ background:#EAF0FF; border-color:var(--blue); font-weight:600; color:var(--blue); }
   #clearFilters{
-    margin-top:16px; width:100%; padding:8px; font-size:12px;
-    background:var(--bg); border:1px solid var(--line); border-radius:4px; cursor:pointer;
+    margin-top:16px; width:100%; padding:9px; font-size:12px;
+    background:var(--bg); border:1px solid var(--line); border-radius:8px; cursor:pointer;
   }
   #clearFilters:hover{background:#EDEBE9;}
 
   /* ===== 主畫面 ===== */
-  #main{flex:1; padding:20px 24px; min-width:0;}
-  #breadcrumb{font-size:13px; color:var(--text-sub); margin-bottom:14px;}
-  #breadcrumb b{color:var(--text);}
+  #main{flex:1; padding:22px 26px 40px; min-width:0;}
+  #status{color:var(--text-sub); font-size:13px; padding:40px; text-align:center;}
 
-  .kpi-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:20px;}
+  .header-row{display:flex; align-items:center; gap:10px; margin-bottom:2px;}
+  .header-title{font-size:22px; font-weight:800;}
+  .badge{
+    background:var(--blue); color:#fff; font-size:12px; font-weight:700;
+    padding:3px 10px; border-radius:999px;
+  }
+  .header-sub{color:var(--text-sub); font-size:12.5px; margin:4px 0 18px;}
+
+  /* KPI + 佔比並排區 */
+  .top-grid{display:grid; grid-template-columns:250px 1fr; gap:14px; margin-bottom:14px;}
+  .kpi-col{display:flex; flex-direction:column; gap:10px;}
   .kpi-card{
-    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-    padding:14px 16px; border-top:3px solid var(--accent);
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:14px 16px; display:flex; align-items:center; justify-content:space-between;
+    border-left:5px solid var(--blue);
   }
-  .kpi-card .num{font-size:26px; font-weight:700;}
-  .kpi-card .label{font-size:12px; color:var(--text-sub); margin-top:2px;}
+  .kpi-card.c-orange{border-left-color:var(--orange);}
+  .kpi-card.c-gold{border-left-color:var(--gold);}
+  .kpi-card.c-purple{border-left-color:var(--purple);}
+  .kpi-card .num{font-size:26px; font-weight:800; line-height:1.1;}
+  .kpi-card .label{font-size:12px; color:var(--text-sub); margin-top:3px;}
+  .kpi-icon{font-size:20px; opacity:.55;}
 
-  .grid{display:grid; grid-template-columns:repeat(2, 1fr); gap:14px;}
-  .card{
-    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-    padding:14px 16px;
+  .share-card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px;
   }
-  .card h3{margin:0 0 10px; font-size:13px; font-weight:600; color:var(--text);}
-  .card .chart-wrap{position:relative; height:230px;}
-  .card.wide{grid-column:1 / -1;}
+  .share-card h3{margin:0 0 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .share-card h3::before{content:""; width:4px; height:14px; background:var(--blue); border-radius:2px; display:inline-block;}
+  .share-list{display:flex; flex-direction:column; gap:9px; max-height:340px; overflow-y:auto;}
+  .share-row{display:grid; grid-template-columns:16px 90px 40px 44px 1fr; align-items:center; gap:8px; font-size:12.5px;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+  .share-name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .share-count{color:var(--text-sub); text-align:right;}
+  .share-pct{color:var(--blue); font-weight:700; text-align:right;}
+  .bar-track{background:#EFEEEC; border-radius:999px; height:7px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:999px;}
+
+  /* 圖表雙欄 */
+  .chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
+  .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; }
+  .card h3{margin:0 0 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .card h3::before{content:""; width:4px; height:14px; background:var(--blue); border-radius:2px; display:inline-block;}
+  .chart-wrap{position:relative; height:230px;}
   .empty-note{color:var(--text-sub); font-size:12px; text-align:center; padding:30px 0;}
 
-  #status{color:var(--text-sub); font-size:13px; padding:40px; text-align:center;}
-  #status a{color:var(--accent-dark);}
-
-  table.detail{width:100%; border-collapse:collapse; font-size:12px;}
-  table.detail th, table.detail td{border-bottom:1px solid var(--line); padding:6px 8px; text-align:left;}
-  table.detail th{color:var(--text-sub); font-weight:600;}
+  /* 排行榜表格 */
+  .rank-table-wrap{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px;}
+  .rank-table-wrap h3{margin:0 0 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .rank-table-wrap h3::before{content:""; width:4px; height:14px; background:var(--blue); border-radius:2px; display:inline-block;}
+  table.rank{width:100%; border-collapse:collapse; font-size:13px;}
+  table.rank th{
+    text-align:left; color:var(--text-sub); font-weight:600; font-size:11.5px;
+    padding:6px 10px; border-bottom:1px solid var(--line);
+  }
+  table.rank td{padding:9px 10px; border-bottom:1px solid var(--line);}
+  table.rank tr:last-child td{border-bottom:none;}
+  .rank-badge{
+    width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:#fff; background:#C9C6C2;
+  }
+  .rank-badge.r1{background:#F0B93E;}
+  .rank-badge.r2{background:#B7B4B0;}
+  .rank-badge.r3{background:#C67C3E;}
+  .rank-pct{color:var(--blue); font-weight:700;}
 </style>
 </head>
 <body>
@@ -121,40 +157,54 @@
   <div id="main">
     <div id="status">讀取資料中…</div>
     <div id="content" style="display:none;">
-      <div id="breadcrumb"></div>
 
-      <div class="kpi-row" id="kpiRow"></div>
+      <div class="header-row">
+        <div class="header-title" id="headerTitle">全部</div>
+        <div class="badge" id="headerBadge">2025年4月</div>
+      </div>
+      <div class="header-sub" id="headerSub"></div>
 
-      <div class="grid">
+      <div class="top-grid">
+        <div class="kpi-col" id="kpiCol"></div>
+        <div class="share-card">
+          <h3>職類別使用佔比</h3>
+          <div class="share-list" id="shareList"></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
         <div class="card">
           <h3>各教室使用人次</h3>
           <div class="chart-wrap"><canvas id="chartRoom"></canvas></div>
         </div>
         <div class="card">
-          <h3>使用職類人次</h3>
-          <div class="chart-wrap"><canvas id="chartJob"></canvas></div>
+          <h3>外借使用職類人次</h3>
+          <div class="chart-wrap"><canvas id="chartLoanJob"></canvas></div>
         </div>
-        <div class="card">
-          <h3>教具使用人次 TOP 10</h3>
-          <div class="chart-wrap"><canvas id="chartEquip"></canvas></div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="rank-table-wrap">
+          <h3>教具使用人次排行（前 10 名）</h3>
+          <div id="equipRankTable"></div>
         </div>
+        <div class="rank-table-wrap">
+          <h3>外借教具排行（前 10 名）</h3>
+          <div id="loanRankTable"></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
         <div class="card">
           <h3>急救教具使用職類人次</h3>
           <div class="chart-wrap"><canvas id="chartFirstAid"></canvas></div>
         </div>
         <div class="card">
-          <h3>外借教具品項 TOP 10（使用人次）</h3>
-          <div class="chart-wrap"><canvas id="chartLoanEquip"></canvas></div>
-        </div>
-        <div class="card">
-          <h3>外借使用職類人次</h3>
-          <div class="chart-wrap"><canvas id="chartLoanJob"></canvas></div>
-        </div>
-        <div class="card wide">
           <h3>使用滿意度</h3>
           <div id="satisfactionBlock"></div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
@@ -166,11 +216,11 @@ const CONFIG = {
 };
 // ======================================================================
 
-const COLORS = ['#01B8AA','#374649','#FD625E','#F2C80F','#5F6B6D','#8AD4EB','#FE9666','#A66999','#B8B5B2','#D64550'];
+const COLORS = ['#3E6FD9','#2FA98C','#F0883E','#F0B93E','#8B6FD9','#5BC0DE','#D9534F','#8B8B8B','#6EA8FE','#C9A227'];
 
 let DATA = null;
-let selectedMonth = null;   // 例如 '2025-04'
-let selectedJob = null;     // 例如 '護理師'
+let selectedMonth = null;
+let selectedJob = null;
 let charts = {};
 
 async function init() {
@@ -188,7 +238,7 @@ async function init() {
       statusEl.textContent = '目前沒有可顯示的資料。';
       return;
     }
-    selectedMonth = DATA.months[DATA.months.length - 1]; // 預設顯示最新月份
+    selectedMonth = DATA.months[DATA.months.length - 1];
     buildMonthSlicer();
     buildJobSlicer();
     render();
@@ -223,7 +273,7 @@ function buildJobSlicer() {
     div.className = 'slicer-item' + (j === selectedJob ? ' active' : '');
     div.textContent = j;
     div.onclick = () => {
-      selectedJob = (selectedJob === j) ? null : j; // 再點一次取消篩選
+      selectedJob = (selectedJob === j) ? null : j;
       render();
       highlightSlicers();
     };
@@ -251,6 +301,10 @@ function formatMonthLabel(m) {
   return y + '年' + parseInt(mo, 10) + '月';
 }
 
+function sumValues(obj) {
+  return Object.values(obj || {}).reduce((a, b) => a + b, 0);
+}
+
 function currentSlice() {
   const monthData = DATA.byMonth[selectedMonth];
   if (!monthData) return null;
@@ -269,25 +323,25 @@ function currentSlice() {
   return monthData;
 }
 
-function sumValues(obj) {
-  return Object.values(obj || {}).reduce((a, b) => a + b, 0);
-}
-
 function render() {
   const slice = currentSlice();
   if (!slice) return;
 
-  document.getElementById('breadcrumb').innerHTML =
-    '<b>' + formatMonthLabel(selectedMonth) + '</b>' +
-    (selectedJob ? ' ﹥ <b>' + selectedJob + '</b>' : ' ﹥ 全部職類');
+  document.getElementById('headerTitle').textContent = selectedJob || '全部';
+  document.getElementById('headerBadge').textContent = formatMonthLabel(selectedMonth);
+  const roomTotal = sumValues(slice.roomUsage);
+  const loanTotal = sumValues(slice.loanByJobCategory);
+  document.getElementById('headerSub').textContent =
+    formatMonthLabel(selectedMonth) + (selectedJob ? ' ' + selectedJob + ' 職類' : '全部職類') +
+    '使用紀錄統計，教室共 ' + roomTotal + ' 人次、外借共 ' + loanTotal + ' 人次';
 
   renderKPI(slice);
+  renderShareList(slice.jobCategoryUsage, slice);
   renderBar('chartRoom', slice.roomUsage, '人次');
-  renderPie('chartJob', slice.jobCategoryUsage);
-  renderTopBarH('chartEquip', slice.equipmentUsage, 10);
-  renderBar('chartFirstAid', slice.firstAidByJobCategory, '人次');
-  renderTopBarH('chartLoanEquip', slice.loanByEquipment, 10);
   renderBar('chartLoanJob', slice.loanByJobCategory, '人次');
+  renderRankTable('equipRankTable', slice.equipmentUsage, '使用人次');
+  renderRankTable('loanRankTable', slice.loanByEquipment, '借用人次');
+  renderBar('chartFirstAid', slice.firstAidByJobCategory, '人次');
   renderSatisfaction(slice.satisfaction);
 }
 
@@ -298,20 +352,67 @@ function renderKPI(slice) {
   const satOverall = slice.satisfaction ? slice.satisfaction.overallAvg : null;
 
   const kpis = [
-    { num: roomTotal, label: '教室使用人次' },
-    { num: loanTotal, label: '外借使用人次' },
-    { num: equipKinds, label: '使用教具品項數' },
-    { num: satOverall !== null && satOverall !== undefined ? satOverall.toFixed(2) : '—', label: '滿意度總平均' }
+    { num: roomTotal, label: '教室使用人次', icon: '📋', cls: '' },
+    { num: loanTotal, label: '外借使用人次', icon: '📦', cls: 'c-orange' },
+    { num: equipKinds, label: '使用教具品項數', icon: '🧰', cls: 'c-gold' },
+    { num: satOverall !== null && satOverall !== undefined ? satOverall.toFixed(2) : '—', label: '滿意度總平均', icon: '⭐', cls: 'c-purple' }
   ];
 
-  const row = document.getElementById('kpiRow');
-  row.innerHTML = '';
+  const col = document.getElementById('kpiCol');
+  col.innerHTML = '';
   kpis.forEach(k => {
     const div = document.createElement('div');
-    div.className = 'kpi-card';
-    div.innerHTML = '<div class="num">' + k.num + '</div><div class="label">' + k.label + '</div>';
-    row.appendChild(div);
+    div.className = 'kpi-card ' + k.cls;
+    div.innerHTML = '<div><div class="num">' + k.num + '</div><div class="label">' + k.label + '</div></div><div class="kpi-icon">' + k.icon + '</div>';
+    col.appendChild(div);
   });
+}
+
+function renderShareList(obj, slice) {
+  const wrap = document.getElementById('shareList');
+  wrap.innerHTML = '';
+  const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((s, e) => s + e[1], 0) || 1;
+  if (entries.length === 0) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
+    return;
+  }
+  entries.forEach((e, i) => {
+    const [name, count] = e;
+    const pct = Math.round((count / total) * 1000) / 10;
+    const color = COLORS[i % COLORS.length];
+    const row = document.createElement('div');
+    row.className = 'share-row';
+    row.innerHTML =
+      '<span class="dot" style="background:' + color + '"></span>' +
+      '<span class="share-name">' + name + '</span>' +
+      '<span class="share-count">' + count + '</span>' +
+      '<span class="share-pct">' + pct + '%</span>' +
+      '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%;background:' + color + '"></span></span>';
+    wrap.appendChild(row);
+  });
+}
+
+function renderRankTable(containerId, obj, unitLabel) {
+  const wrap = document.getElementById(containerId);
+  const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (entries.length === 0) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
+    return;
+  }
+  const total = Object.values(obj).reduce((a, b) => a + b, 0) || 1;
+  let html = '<table class="rank"><thead><tr><th></th><th>名稱</th><th style="text-align:right">' + unitLabel + '</th><th style="text-align:right">占比</th></tr></thead><tbody>';
+  entries.forEach((e, i) => {
+    const [name, count] = e;
+    const pct = Math.round((count / total) * 1000) / 10;
+    const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    html += '<tr><td><span class="rank-badge ' + rankCls + '">' + (i + 1) + '</span></td>' +
+      '<td>' + name + '</td>' +
+      '<td style="text-align:right">' + count + '</td>' +
+      '<td style="text-align:right" class="rank-pct">' + pct + '%</td></tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
 }
 
 function destroyChart(id) {
@@ -343,44 +444,14 @@ function renderBar(canvasId, obj, unitLabel) {
   const values = labels.map(l => obj[l]);
   charts[canvasId] = new Chart(document.getElementById(canvasId), {
     type: 'bar',
-    data: { labels, datasets: [{ label: unitLabel, data: values, backgroundColor: COLORS[0], borderRadius: 3 }] },
+    data: { labels, datasets: [{ label: unitLabel, data: values, backgroundColor: '#3E6FD9', borderRadius: 6, maxBarThickness: 46 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-    }
-  });
-}
-
-function renderTopBarH(canvasId, obj, topN) {
-  destroyChart(canvasId);
-  if (!emptyIfNoData(canvasId, obj)) return;
-  const entries = Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, topN);
-  charts[canvasId] = new Chart(document.getElementById(canvasId), {
-    type: 'bar',
-    data: {
-      labels: entries.map(e => e[0]),
-      datasets: [{ data: entries.map(e => e[1]), backgroundColor: COLORS[2], borderRadius: 3 }]
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-    }
-  });
-}
-
-function renderPie(canvasId, obj) {
-  destroyChart(canvasId);
-  if (!emptyIfNoData(canvasId, obj)) return;
-  const labels = Object.keys(obj);
-  const values = labels.map(l => obj[l]);
-  charts[canvasId] = new Chart(document.getElementById(canvasId), {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: labels.map((_, i) => COLORS[i % COLORS.length]) }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } }
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#F0EFED' } },
+        x: { grid: { display: false } }
+      }
     }
   });
 }
@@ -392,13 +463,13 @@ function renderSatisfaction(sat) {
     return;
   }
   const items = [
-    { label: '場地平均滿意度', val: sat.venueAvg },
-    { label: '設備平均滿意度', val: sat.equipAvg },
-    { label: '總平均分數', val: sat.overallAvg }
+    { label: '場地平均滿意度', val: sat.venueAvg, color: 'var(--blue)' },
+    { label: '設備平均滿意度', val: sat.equipAvg, color: 'var(--teal)' },
+    { label: '總平均分數', val: sat.overallAvg, color: 'var(--orange)' }
   ];
-  wrap.innerHTML = '<div class="kpi-row">' + items.map(i =>
-    '<div class="kpi-card"><div class="num">' + (i.val !== null ? i.val.toFixed(2) : '—') +
-    '</div><div class="label">' + i.label + '（' + sat.responseCount + ' 筆題項回覆）</div></div>'
+  wrap.innerHTML = '<div class="kpi-col" style="flex-direction:row; gap:12px;">' + items.map(i =>
+    '<div class="kpi-card" style="border-left-color:' + i.color + '; flex:1;"><div><div class="num">' +
+    (i.val !== null ? i.val.toFixed(2) : '—') + '</div><div class="label">' + i.label + '（' + sat.responseCount + ' 筆回覆）</div></div></div>'
   ).join('') + '</div>';
 }
 
