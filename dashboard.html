@@ -265,8 +265,7 @@ function buildMonthSlicer() {
 function buildJobSlicer() {
   const wrap = document.getElementById('jobSlicer');
   wrap.innerHTML = '';
-  const monthData = DATA.byMonth[selectedMonth];
-  const jobs = monthData ? Object.keys(monthData.byJobCategory).sort() : [];
+  const jobs = DATA.jobCategories || [];
   if (selectedJob && jobs.indexOf(selectedJob) === -1) selectedJob = null;
   jobs.forEach(j => {
     const div = document.createElement('div');
@@ -350,12 +349,13 @@ function renderKPI(slice) {
   const loanTotal = sumValues(slice.loanByJobCategory);
   const equipKinds = Object.keys(slice.equipmentUsage || {}).length;
   const satOverall = slice.satisfaction ? slice.satisfaction.overallAvg : null;
+  const satScore100 = (satOverall !== null && satOverall !== undefined) ? satOverall * 20 : null;
 
   const kpis = [
     { num: roomTotal, label: '教室使用人次', icon: '📋', cls: '' },
     { num: loanTotal, label: '外借使用人次', icon: '📦', cls: 'c-orange' },
     { num: equipKinds, label: '使用教具品項數', icon: '🧰', cls: 'c-gold' },
-    { num: satOverall !== null && satOverall !== undefined ? satOverall.toFixed(2) : '—', label: '滿意度總平均', icon: '⭐', cls: 'c-purple' }
+    { num: satScore100 !== null ? satScore100.toFixed(1) : '—', label: '滿意度總分（百分制）', icon: '⭐', cls: 'c-purple' }
   ];
 
   const col = document.getElementById('kpiCol');
@@ -371,7 +371,8 @@ function renderKPI(slice) {
 function renderShareList(obj, slice) {
   const wrap = document.getElementById('shareList');
   wrap.innerHTML = '';
-  const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+  const masterList = DATA.jobCategories || Object.keys(obj || {});
+  const entries = masterList.map(name => [name, (obj && obj[name]) || 0]);
   const total = entries.reduce((s, e) => s + e[1], 0) || 1;
   if (entries.length === 0) {
     wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
@@ -462,14 +463,15 @@ function renderSatisfaction(sat) {
     wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無滿意度回覆</div>';
     return;
   }
+  const to100 = v => (v !== null && v !== undefined) ? (v * 20).toFixed(1) : '—';
   const items = [
-    { label: '場地平均滿意度', val: sat.venueAvg, color: 'var(--blue)' },
-    { label: '設備平均滿意度', val: sat.equipAvg, color: 'var(--teal)' },
-    { label: '總平均分數', val: sat.overallAvg, color: 'var(--orange)' }
+    { label: '場地平均分數（百分制）', val: to100(sat.venueAvg), color: 'var(--blue)' },
+    { label: '設備平均分數（百分制）', val: to100(sat.equipAvg), color: 'var(--teal)' },
+    { label: '總分數（百分制）', val: to100(sat.overallAvg), color: 'var(--orange)' }
   ];
   wrap.innerHTML = '<div class="kpi-col" style="flex-direction:row; gap:12px;">' + items.map(i =>
     '<div class="kpi-card" style="border-left-color:' + i.color + '; flex:1;"><div><div class="num">' +
-    (i.val !== null ? i.val.toFixed(2) : '—') + '</div><div class="label">' + i.label + '（' + sat.responseCount + ' 筆回覆）</div></div></div>'
+    i.val + '</div><div class="label">' + i.label + '（' + sat.responseCount + ' 筆回覆）</div></div></div>'
   ).join('') + '</div>';
 }
 
