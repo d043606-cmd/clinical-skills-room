@@ -69,6 +69,27 @@
   }
   #clearFilters:hover{background:#EDEBE9;}
 
+  .range-box{background:#FAF9F8; border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:6px;}
+  .range-box select{
+    width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--line);
+    font-size:12.5px; margin-bottom:8px; background:#fff; color:var(--text);
+  }
+  .quarter-btns{display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-bottom:10px;}
+  .qbtn{
+    padding:6px 0; font-size:11.5px; border:1px solid var(--line); border-radius:6px;
+    background:#fff; cursor:pointer; color:var(--text);
+  }
+  .qbtn:hover{background:#EAF0FF; border-color:var(--blue);}
+  .qbtn.active{background:var(--blue); border-color:var(--blue); color:#fff; font-weight:700;}
+  .range-row{display:flex; align-items:center; gap:6px; margin-bottom:8px;}
+  .range-row select{margin-bottom:0;}
+  .range-row span{color:var(--text-sub); font-size:12px;}
+  #applyRange{
+    width:100%; padding:8px; font-size:12.5px; background:var(--blue); color:#fff;
+    border:none; border-radius:6px; cursor:pointer; font-weight:600;
+  }
+  #applyRange:hover{background:#2F5BC0;}
+
   /* ===== 主畫面 ===== */
   #main{flex:1; padding:22px 26px 40px; min-width:0;}
   #status{color:var(--text-sub); font-size:13px; padding:40px; text-align:center;}
@@ -146,8 +167,26 @@
     <h1>臨床技能教室</h1>
     <div class="sub">使用統計儀表板</div>
 
-    <div class="slicer-title">年月</div>
+    <div class="slicer-title">年月（單月）</div>
     <div id="monthSlicer" class="slicer-list"></div>
+
+    <div class="slicer-title">自訂查詢區間</div>
+    <div class="range-box">
+      <select id="yearSelect"></select>
+      <div class="quarter-btns">
+        <button class="qbtn" data-q="1">Q1</button>
+        <button class="qbtn" data-q="2">Q2</button>
+        <button class="qbtn" data-q="3">Q3</button>
+        <button class="qbtn" data-q="4">Q4</button>
+        <button class="qbtn" data-q="all">全年</button>
+      </div>
+      <div class="range-row">
+        <select id="rangeStartSelect"></select>
+        <span>～</span>
+        <select id="rangeEndSelect"></select>
+      </div>
+      <button id="applyRange">套用區間</button>
+    </div>
 
     <div class="slicer-title">使用職類</div>
     <div id="jobSlicer" class="slicer-list"></div>
@@ -220,7 +259,8 @@ const CONFIG = {
 const COLORS = ['#3E6FD9','#2FA98C','#F0883E','#F0B93E','#8B6FD9','#5BC0DE','#D9534F','#8B8B8B','#6EA8FE','#C9A227'];
 
 let DATA = null;
-let selectedMonth = null;
+let rangeStart = null; // 查詢區間起始月份，例如 '2025-04'
+let rangeEnd = null;   // 查詢區間結束月份，單月查詢時 rangeStart === rangeEnd
 let selectedJob = null;
 let charts = {};
 
@@ -239,9 +279,12 @@ async function init() {
       statusEl.textContent = '目前沒有可顯示的資料。';
       return;
     }
-    selectedMonth = DATA.months[DATA.months.length - 1];
+    const latestMonth = DATA.months[DATA.months.length - 1];
+    rangeStart = latestMonth;
+    rangeEnd = latestMonth;
     buildMonthSlicer();
     buildJobSlicer();
+    buildRangeControls();
     render();
     statusEl.style.display = 'none';
     document.getElementById('content').style.display = 'block';
@@ -255,12 +298,64 @@ function buildMonthSlicer() {
   wrap.innerHTML = '';
   DATA.months.forEach(m => {
     const div = document.createElement('div');
-    div.className = 'slicer-item' + (m === selectedMonth ? ' active' : '');
+    div.className = 'slicer-item' + (rangeStart === m && rangeEnd === m ? ' active' : '');
     div.textContent = formatMonthLabel(m);
-    div.onclick = () => { selectedMonth = m; buildJobSlicer(); render(); highlightSlicers(); };
+    div.onclick = () => { rangeStart = m; rangeEnd = m; render(); highlightSlicers(); };
     div.dataset.month = m;
     wrap.appendChild(div);
   });
+}
+
+function buildRangeControls() {
+  const years = Array.from(new Set(DATA.months.map(m => m.split('-')[0]))).sort();
+  const yearSelect = document.getElementById('yearSelect');
+  yearSelect.innerHTML = years.map(y => '<option value="' + y + '">' + y + '年</option>').join('');
+  yearSelect.value = rangeEnd.split('-')[0];
+
+  const startSelect = document.getElementById('rangeStartSelect');
+  const endSelect = document.getElementById('rangeEndSelect');
+  const opts = DATA.months.map(m => '<option value="' + m + '">' + formatMonthLabel(m) + '</option>').join('');
+  startSelect.innerHTML = opts;
+  endSelect.innerHTML = opts;
+  startSelect.value = rangeStart;
+  endSelect.value = rangeEnd;
+
+  document.querySelectorAll('.qbtn').forEach(btn => {
+    btn.onclick = () => {
+      const year = yearSelect.value;
+      const q = btn.dataset.q;
+      let startMo, endMo;
+      if (q === 'all') { startMo = '01'; endMo = '12'; }
+      else {
+        const qn = parseInt(q, 10);
+        startMo = String((qn - 1) * 3 + 1).padStart(2, '0');
+        endMo = String(qn * 3).padStart(2, '0');
+      }
+      const candidateStart = year + '-' + startMo;
+      const candidateEnd = year + '-' + endMo;
+      // 只取該區間內實際存在資料的月份，避免選到超出資料範圍的空區間
+      const monthsInRange = DATA.months.filter(m => m >= candidateStart && m <= candidateEnd);
+      if (monthsInRange.length === 0) {
+        alert(year + '年這段期間目前沒有資料');
+        return;
+      }
+      rangeStart = monthsInRange[0];
+      rangeEnd = monthsInRange[monthsInRange.length - 1];
+      startSelect.value = rangeStart;
+      endSelect.value = rangeEnd;
+      render();
+      highlightSlicers();
+    };
+  });
+
+  document.getElementById('applyRange').onclick = () => {
+    const s = startSelect.value, e = endSelect.value;
+    if (s > e) { alert('起始月份不能晚於結束月份'); return; }
+    rangeStart = s;
+    rangeEnd = e;
+    render();
+    highlightSlicers();
+  };
 }
 
 function buildJobSlicer() {
@@ -283,15 +378,20 @@ function buildJobSlicer() {
 
 function highlightSlicers() {
   document.querySelectorAll('#monthSlicer .slicer-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.month === selectedMonth);
+    el.classList.toggle('active', el.dataset.month === rangeStart && el.dataset.month === rangeEnd);
   });
   document.querySelectorAll('#jobSlicer .slicer-item').forEach(el => {
     el.classList.toggle('active', el.textContent === selectedJob);
   });
+  document.querySelectorAll('.qbtn').forEach(btn => btn.classList.remove('active'));
 }
 
 document.getElementById('clearFilters').onclick = () => {
   selectedJob = null;
+  rangeStart = DATA.months[DATA.months.length - 1];
+  rangeEnd = rangeStart;
+  document.getElementById('rangeStartSelect').value = rangeStart;
+  document.getElementById('rangeEndSelect').value = rangeEnd;
   render();
   highlightSlicers();
 };
@@ -305,9 +405,103 @@ function sumValues(obj) {
   return Object.values(obj || {}).reduce((a, b) => a + b, 0);
 }
 
+function mergeDict(target, source) {
+  Object.entries(source || {}).forEach(([k, v]) => { target[k] = (target[k] || 0) + v; });
+}
+
+function emptyJobBucket() {
+  return {
+    roomUsage: {}, roomVisits: {}, equipmentUsage: {}, equipmentVisits: {},
+    firstAidCount: 0, firstAidVisits: 0,
+    loanByEquipment: {}, loanCount: 0,
+    satisfaction: { venueSum: 0, venueWeight: 0, equipSum: 0, equipWeight: 0, overallSum: 0, overallWeight: 0 }
+  };
+}
+
+function finalizeSatisfaction(s) {
+  const r = v => v !== null && v !== undefined ? Math.round(v * 100) / 100 : null;
+  return {
+    venueAvg: s.venueWeight ? r(s.venueSum / s.venueWeight) : null,
+    equipAvg: s.equipWeight ? r(s.equipSum / s.equipWeight) : null,
+    overallAvg: s.overallWeight ? r(s.overallSum / s.overallWeight) : null,
+    responseCount: s.overallWeight
+  };
+}
+
+// 合併查詢區間內所有月份的資料（單月查詢時，區間只有一個月，等同於原本的單月資料）
+function mergeMonths(monthKeys) {
+  const merged = {
+    roomUsage: {}, roomVisits: {}, equipmentUsage: {}, equipmentVisits: {},
+    jobCategoryUsage: {}, jobCategoryVisits: {},
+    firstAidByJobCategory: {}, firstAidVisitsByJobCategory: {},
+    loanByEquipment: {}, loanByJobCategory: {},
+    satisfaction: { venueSum: 0, venueWeight: 0, equipSum: 0, equipWeight: 0, overallSum: 0, overallWeight: 0 },
+    byJobCategory: {}
+  };
+
+  monthKeys.forEach(m => {
+    const md = DATA.byMonth[m];
+    if (!md) return;
+    mergeDict(merged.roomUsage, md.roomUsage);
+    mergeDict(merged.roomVisits, md.roomVisits);
+    mergeDict(merged.equipmentUsage, md.equipmentUsage);
+    mergeDict(merged.equipmentVisits, md.equipmentVisits);
+    mergeDict(merged.jobCategoryUsage, md.jobCategoryUsage);
+    mergeDict(merged.jobCategoryVisits, md.jobCategoryVisits);
+    mergeDict(merged.firstAidByJobCategory, md.firstAidByJobCategory);
+    mergeDict(merged.firstAidVisitsByJobCategory, md.firstAidVisitsByJobCategory);
+    mergeDict(merged.loanByEquipment, md.loanByEquipment);
+    mergeDict(merged.loanByJobCategory, md.loanByJobCategory);
+
+    const w = (md.satisfaction && md.satisfaction.responseCount) || 0;
+    if (w > 0) {
+      if (md.satisfaction.venueAvg !== null) { merged.satisfaction.venueSum += md.satisfaction.venueAvg * w; merged.satisfaction.venueWeight += w; }
+      if (md.satisfaction.equipAvg !== null) { merged.satisfaction.equipSum += md.satisfaction.equipAvg * w; merged.satisfaction.equipWeight += w; }
+      if (md.satisfaction.overallAvg !== null) { merged.satisfaction.overallSum += md.satisfaction.overallAvg * w; merged.satisfaction.overallWeight += w; }
+    }
+
+    Object.keys(md.byJobCategory || {}).forEach(job => {
+      const jb = md.byJobCategory[job];
+      if (!merged.byJobCategory[job]) merged.byJobCategory[job] = emptyJobBucket();
+      const mj = merged.byJobCategory[job];
+      mergeDict(mj.roomUsage, jb.roomUsage);
+      mergeDict(mj.roomVisits, jb.roomVisits);
+      mergeDict(mj.equipmentUsage, jb.equipmentUsage);
+      mergeDict(mj.equipmentVisits, jb.equipmentVisits);
+      mj.firstAidCount += jb.firstAidCount || 0;
+      mj.firstAidVisits += jb.firstAidVisits || 0;
+      mergeDict(mj.loanByEquipment, jb.loanByEquipment);
+      mj.loanCount += jb.loanCount || 0;
+
+      const jw = (jb.satisfaction && jb.satisfaction.responseCount) || 0;
+      if (jw > 0) {
+        if (jb.satisfaction.venueAvg !== null) { mj.satisfaction.venueSum += jb.satisfaction.venueAvg * jw; mj.satisfaction.venueWeight += jw; }
+        if (jb.satisfaction.equipAvg !== null) { mj.satisfaction.equipSum += jb.satisfaction.equipAvg * jw; mj.satisfaction.equipWeight += jw; }
+        if (jb.satisfaction.overallAvg !== null) { mj.satisfaction.overallSum += jb.satisfaction.overallAvg * jw; mj.satisfaction.overallWeight += jw; }
+      }
+    });
+  });
+
+  merged.satisfaction = finalizeSatisfaction(merged.satisfaction);
+  Object.keys(merged.byJobCategory).forEach(job => {
+    merged.byJobCategory[job].satisfaction = finalizeSatisfaction(merged.byJobCategory[job].satisfaction);
+  });
+
+  return merged;
+}
+
+function activeMonthKeys() {
+  return (DATA.months || []).filter(m => m >= rangeStart && m <= rangeEnd);
+}
+
+function rangeLabel() {
+  return rangeStart === rangeEnd ? formatMonthLabel(rangeStart) : (formatMonthLabel(rangeStart) + ' ～ ' + formatMonthLabel(rangeEnd));
+}
+
 function currentSlice() {
-  const monthData = DATA.byMonth[selectedMonth];
-  if (!monthData) return null;
+  const months = activeMonthKeys();
+  if (months.length === 0) return null;
+  const monthData = mergeMonths(months);
   if (selectedJob && monthData.byJobCategory[selectedJob]) {
     const jb = monthData.byJobCategory[selectedJob];
     return {
@@ -332,11 +526,11 @@ function render() {
   if (!slice) return;
 
   document.getElementById('headerTitle').textContent = selectedJob || '全部';
-  document.getElementById('headerBadge').textContent = formatMonthLabel(selectedMonth);
+  document.getElementById('headerBadge').textContent = rangeLabel();
   const roomTotal = sumValues(slice.roomUsage);
   const loanTotal = sumValues(slice.loanByJobCategory);
   document.getElementById('headerSub').textContent =
-    formatMonthLabel(selectedMonth) + (selectedJob ? ' ' + selectedJob + ' 職類' : '全部職類') +
+    rangeLabel() + (selectedJob ? ' ' + selectedJob + ' 職類' : ' 全部職類') +
     '使用紀錄統計，教室共 ' + roomTotal + ' 人次、外借共 ' + loanTotal + ' 人次';
 
   renderKPI(slice);
