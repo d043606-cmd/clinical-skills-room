@@ -359,7 +359,7 @@ function renderKPI(slice) {
 
   const kpis = [
     { num: roomTotal, label: '教室使用人次', icon: '📋', cls: '' },
-    { num: roomVisitTotal, label: '教室使用次數（含未填人數）', icon: '🔁', cls: 'c-teal' },
+    { num: roomVisitTotal, label: '教室使用次數', icon: '🔁', cls: 'c-teal' },
     { num: loanTotal, label: '外借使用人次', icon: '📦', cls: 'c-orange' },
     { num: equipKinds, label: '使用教具品項數', icon: '🧰', cls: 'c-gold' },
     { num: satScore100 !== null ? satScore100.toFixed(1) : '—', label: '滿意度總分（百分制）', icon: '⭐', cls: 'c-purple' }
@@ -380,14 +380,17 @@ function renderShareList(obj, visitsObj) {
   wrap.innerHTML = '';
   const masterList = DATA.jobCategories || Object.keys(obj || {});
   const entries = masterList.map(name => [name, (obj && obj[name]) || 0, (visitsObj && visitsObj[name]) || 0]);
-  const total = entries.reduce((s, e) => s + e[1], 0) || 1;
+  const totalCount = entries.reduce((s, e) => s + e[1], 0);
+  const totalVisits = entries.reduce((s, e) => s + e[2], 0);
+  const useVisitsForPct = totalCount === 0 && totalVisits > 0; // 人次全部是 0（例如人數欄位空白）時，改用次數算佔比
+  const total = (useVisitsForPct ? totalVisits : totalCount) || 1;
   if (entries.length === 0) {
     wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
     return;
   }
   entries.forEach((e, i) => {
     const [name, count, visits] = e;
-    const pct = Math.round((count / total) * 1000) / 10;
+    const pct = Math.round(((useVisitsForPct ? visits : count) / total) * 1000) / 10;
     const color = COLORS[i % COLORS.length];
     const row = document.createElement('div');
     row.className = 'share-row';
@@ -423,30 +426,35 @@ function renderRankTable(containerId, obj, unitLabel) {
   wrap.innerHTML = html;
 }
 
-// 排行榜表格（雙指標版）：同時顯示使用人次與使用次數，排序仍以人次為主，人次全 0 時改用次數排序
+// 排行榜表格（三指標版）：使用人次、使用次數、占比，人次全 0 時改用次數排序與計算占比
 function renderRankTable2(containerId, obj, visitsObj, unitLabel, unitLabel2) {
   const wrap = document.getElementById(containerId);
-  const names = Object.keys(obj || {});
+  const names = Array.from(new Set([...Object.keys(obj || {}), ...Object.keys(visitsObj || {})]));
   if (names.length === 0) {
     wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
     return;
   }
-  const totalCount = Object.values(obj).reduce((a, b) => a + b, 0);
-  const sortKey = totalCount > 0 ? obj : visitsObj; // 人次全部是 0 時，改用次數排序，避免排行榜看起來雜亂無章
+  const totalCount = Object.values(obj || {}).reduce((a, b) => a + b, 0);
+  const totalVisits = Object.values(visitsObj || {}).reduce((a, b) => a + b, 0);
+  const useVisits = totalCount === 0 && totalVisits > 0; // 人次全部是 0 時，改用次數排序與算占比
+  const total = (useVisits ? totalVisits : totalCount) || 1;
   const entries = names
-    .map(name => [name, obj[name] || 0, (visitsObj && visitsObj[name]) || 0])
-    .sort((a, b) => (sortKey === obj ? b[1] - a[1] : b[2] - a[2]))
+    .map(name => [name, (obj && obj[name]) || 0, (visitsObj && visitsObj[name]) || 0])
+    .sort((a, b) => (useVisits ? b[2] - a[2] : b[1] - a[1]))
     .slice(0, 10);
   let html = '<table class="rank"><thead><tr><th></th><th>名稱</th>' +
     '<th style="text-align:right">' + unitLabel + '</th>' +
-    '<th style="text-align:right">' + unitLabel2 + '</th></tr></thead><tbody>';
+    '<th style="text-align:right">' + unitLabel2 + '</th>' +
+    '<th style="text-align:right">占比</th></tr></thead><tbody>';
   entries.forEach((e, i) => {
     const [name, count, visits] = e;
+    const pct = Math.round(((useVisits ? visits : count) / total) * 1000) / 10;
     const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
     html += '<tr><td><span class="rank-badge ' + rankCls + '">' + (i + 1) + '</span></td>' +
       '<td>' + name + '</td>' +
       '<td style="text-align:right">' + count + '</td>' +
-      '<td style="text-align:right" class="rank-pct">' + visits + '</td></tr>';
+      '<td style="text-align:right">' + visits + '</td>' +
+      '<td style="text-align:right" class="rank-pct">' + pct + '%</td></tr>';
   });
   html += '</tbody></table>';
   wrap.innerHTML = html;
