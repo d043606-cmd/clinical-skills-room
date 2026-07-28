@@ -92,6 +92,7 @@
   .kpi-card.c-orange{border-left-color:var(--orange);}
   .kpi-card.c-gold{border-left-color:var(--gold);}
   .kpi-card.c-purple{border-left-color:var(--purple);}
+  .kpi-card.c-teal{border-left-color:var(--teal);}
   .kpi-card .num{font-size:26px; font-weight:800; line-height:1.1;}
   .kpi-card .label{font-size:12px; color:var(--text-sub); margin-top:3px;}
   .kpi-icon{font-size:20px; opacity:.55;}
@@ -311,9 +312,13 @@ function currentSlice() {
     const jb = monthData.byJobCategory[selectedJob];
     return {
       roomUsage: jb.roomUsage,
+      roomVisits: jb.roomVisits,
       equipmentUsage: jb.equipmentUsage,
+      equipmentVisits: jb.equipmentVisits,
       jobCategoryUsage: { [selectedJob]: sumValues(jb.roomUsage) },
+      jobCategoryVisits: { [selectedJob]: sumValues(jb.roomVisits) },
       firstAidByJobCategory: { [selectedJob]: jb.firstAidCount },
+      firstAidVisitsByJobCategory: { [selectedJob]: jb.firstAidVisits },
       loanByEquipment: jb.loanByEquipment,
       loanByJobCategory: { [selectedJob]: jb.loanCount },
       satisfaction: jb.satisfaction
@@ -335,17 +340,18 @@ function render() {
     '使用紀錄統計，教室共 ' + roomTotal + ' 人次、外借共 ' + loanTotal + ' 人次';
 
   renderKPI(slice);
-  renderShareList(slice.jobCategoryUsage, slice);
-  renderBar('chartRoom', slice.roomUsage, '人次');
+  renderShareList(slice.jobCategoryUsage, slice.jobCategoryVisits);
+  renderBar2('chartRoom', slice.roomUsage, slice.roomVisits, '人次', '次數');
   renderBar('chartLoanJob', slice.loanByJobCategory, '人次');
-  renderRankTable('equipRankTable', slice.equipmentUsage, '使用人次');
+  renderRankTable2('equipRankTable', slice.equipmentUsage, slice.equipmentVisits, '使用人次', '使用次數');
   renderRankTable('loanRankTable', slice.loanByEquipment, '借用人次');
-  renderBar('chartFirstAid', slice.firstAidByJobCategory, '人次');
+  renderBar2('chartFirstAid', slice.firstAidByJobCategory, slice.firstAidVisitsByJobCategory, '人次', '次數');
   renderSatisfaction(slice.satisfaction);
 }
 
 function renderKPI(slice) {
   const roomTotal = sumValues(slice.roomUsage);
+  const roomVisitTotal = sumValues(slice.roomVisits);
   const loanTotal = sumValues(slice.loanByJobCategory);
   const equipKinds = Object.keys(slice.equipmentUsage || {}).length;
   const satOverall = slice.satisfaction ? slice.satisfaction.overallAvg : null;
@@ -353,6 +359,7 @@ function renderKPI(slice) {
 
   const kpis = [
     { num: roomTotal, label: '教室使用人次', icon: '📋', cls: '' },
+    { num: roomVisitTotal, label: '教室使用次數（含未填人數）', icon: '🔁', cls: 'c-teal' },
     { num: loanTotal, label: '外借使用人次', icon: '📦', cls: 'c-orange' },
     { num: equipKinds, label: '使用教具品項數', icon: '🧰', cls: 'c-gold' },
     { num: satScore100 !== null ? satScore100.toFixed(1) : '—', label: '滿意度總分（百分制）', icon: '⭐', cls: 'c-purple' }
@@ -368,18 +375,18 @@ function renderKPI(slice) {
   });
 }
 
-function renderShareList(obj, slice) {
+function renderShareList(obj, visitsObj) {
   const wrap = document.getElementById('shareList');
   wrap.innerHTML = '';
   const masterList = DATA.jobCategories || Object.keys(obj || {});
-  const entries = masterList.map(name => [name, (obj && obj[name]) || 0]);
+  const entries = masterList.map(name => [name, (obj && obj[name]) || 0, (visitsObj && visitsObj[name]) || 0]);
   const total = entries.reduce((s, e) => s + e[1], 0) || 1;
   if (entries.length === 0) {
     wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
     return;
   }
   entries.forEach((e, i) => {
-    const [name, count] = e;
+    const [name, count, visits] = e;
     const pct = Math.round((count / total) * 1000) / 10;
     const color = COLORS[i % COLORS.length];
     const row = document.createElement('div');
@@ -387,7 +394,7 @@ function renderShareList(obj, slice) {
     row.innerHTML =
       '<span class="dot" style="background:' + color + '"></span>' +
       '<span class="share-name">' + name + '</span>' +
-      '<span class="share-count">' + count + '</span>' +
+      '<span class="share-count">' + count + ' 人次<span style="color:var(--text-sub)">／' + visits + ' 次</span></span>' +
       '<span class="share-pct">' + pct + '%</span>' +
       '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%;background:' + color + '"></span></span>';
     wrap.appendChild(row);
@@ -411,6 +418,35 @@ function renderRankTable(containerId, obj, unitLabel) {
       '<td>' + name + '</td>' +
       '<td style="text-align:right">' + count + '</td>' +
       '<td style="text-align:right" class="rank-pct">' + pct + '%</td></tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// 排行榜表格（雙指標版）：同時顯示使用人次與使用次數，排序仍以人次為主，人次全 0 時改用次數排序
+function renderRankTable2(containerId, obj, visitsObj, unitLabel, unitLabel2) {
+  const wrap = document.getElementById(containerId);
+  const names = Object.keys(obj || {});
+  if (names.length === 0) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
+    return;
+  }
+  const totalCount = Object.values(obj).reduce((a, b) => a + b, 0);
+  const sortKey = totalCount > 0 ? obj : visitsObj; // 人次全部是 0 時，改用次數排序，避免排行榜看起來雜亂無章
+  const entries = names
+    .map(name => [name, obj[name] || 0, (visitsObj && visitsObj[name]) || 0])
+    .sort((a, b) => (sortKey === obj ? b[1] - a[1] : b[2] - a[2]))
+    .slice(0, 10);
+  let html = '<table class="rank"><thead><tr><th></th><th>名稱</th>' +
+    '<th style="text-align:right">' + unitLabel + '</th>' +
+    '<th style="text-align:right">' + unitLabel2 + '</th></tr></thead><tbody>';
+  entries.forEach((e, i) => {
+    const [name, count, visits] = e;
+    const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    html += '<tr><td><span class="rank-badge ' + rankCls + '">' + (i + 1) + '</span></td>' +
+      '<td>' + name + '</td>' +
+      '<td style="text-align:right">' + count + '</td>' +
+      '<td style="text-align:right" class="rank-pct">' + visits + '</td></tr>';
   });
   html += '</tbody></table>';
   wrap.innerHTML = html;
@@ -457,6 +493,48 @@ function renderBar(canvasId, obj, unitLabel) {
   });
 }
 
+// 雙指標分組長條圖：同時顯示「人次」與「次數」兩組資料，方便比對人數欄位空白時的實際使用狀況
+function renderBar2(canvasId, obj, obj2, unitLabel, unitLabel2) {
+  destroyChart(canvasId);
+  const hasData = (obj && Object.keys(obj).length > 0) || (obj2 && Object.keys(obj2).length > 0);
+  const canvas = document.getElementById(canvasId);
+  canvas.style.display = hasData ? 'block' : 'none';
+  let note = canvas.parentElement.querySelector('.empty-note');
+  if (!hasData) {
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'empty-note';
+      note.textContent = '本篩選範圍暫無資料';
+      canvas.parentElement.appendChild(note);
+    }
+    return;
+  } else if (note) {
+    note.remove();
+  }
+  const labelSet = new Set([...Object.keys(obj || {}), ...Object.keys(obj2 || {})]);
+  const labels = Array.from(labelSet);
+  const values1 = labels.map(l => (obj && obj[l]) || 0);
+  const values2 = labels.map(l => (obj2 && obj2[l]) || 0);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: unitLabel, data: values1, backgroundColor: '#3E6FD9', borderRadius: 6, maxBarThickness: 32 },
+        { label: unitLabel2, data: values2, backgroundColor: '#B9C9F2', borderRadius: 6, maxBarThickness: 32 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#F0EFED' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
 function renderSatisfaction(sat) {
   const wrap = document.getElementById('satisfactionBlock');
   if (!sat || !sat.responseCount) {
@@ -471,7 +549,7 @@ function renderSatisfaction(sat) {
   ];
   wrap.innerHTML = '<div class="kpi-col" style="flex-direction:row; gap:12px;">' + items.map(i =>
     '<div class="kpi-card" style="border-left-color:' + i.color + '; flex:1;"><div><div class="num">' +
-    i.val + '</div><div class="label">' + i.label + '（' + sat.responseCount + ' 筆回覆）</div></div></div>'
+    i.val + '</div><div class="label">' + i.label + '</div></div></div>'
   ).join('') + '</div>';
 }
 
