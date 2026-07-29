@@ -1194,6 +1194,7 @@ async function confirmReturn(token,btn){
       body:JSON.stringify({action:'returnItem',token:token})
     });
     const result=await res.json();
+    alert('【診斷】'+(result.message||'(無message)')); // ← 暫時加的，看完診斷資訊後記得刪掉
     if(result.success){
       showConfirmedCard(token,btn);
     }else{
