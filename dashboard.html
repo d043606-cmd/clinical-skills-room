@@ -22,86 +22,252 @@
 
 </script>
 <style>
-:root{
-  --bg:#F7F7F5; --card:#fff; --border:#E7E5E2; --text:#2B2B2B; --sub:#6B6B6B;
-  --primary:#3E6FD9; --accent:#2FA98C;
-}
-*{box-sizing:border-box;}
-body{margin:0;font-family:'Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);}
-#app{max-width:1200px;margin:0 auto;padding:24px 20px 60px;}
-h1{font-size:1.4rem;margin:0 0 4px;}
-.sub{color:var(--sub);font-size:.85rem;margin-bottom:20px;}
-#status{padding:60px;text-align:center;color:var(--sub);}
-.kpi-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:24px;}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:140px;flex:1;}
-.kpi .num{font-size:1.7rem;font-weight:700;color:var(--primary);}
-.kpi .label{font-size:.8rem;color:var(--sub);margin-top:2px;}
-.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-@media(max-width:860px){.chart-grid{grid-template-columns:1fr;}}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;}
-.card h3{margin:0 0 12px;font-size:1rem;}
-.chart-wrap{position:relative;height:320px;}
-.chart-wrap.tall{height:380px;}
-.empty-note{color:var(--sub);font-size:.85rem;padding:40px 0;text-align:center;}
-.error-note{color:#D9534F;font-size:.85rem;padding:16px;background:#FCEEEE;border-radius:8px;}
+  :root{
+    --bg:#F2F1EF;
+    --card:#FFFFFF;
+    --line:#ECEAE7;
+    --text:#2B2B2B;
+    --text-sub:#8B8B8B;
+    --blue:#3E6FD9;
+    --orange:#F0883E;
+    --gold:#F0B93E;
+    --purple:#8B6FD9;
+    --teal:#2FA98C;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(20,20,20,.04), 0 2px 10px rgba(20,20,20,.05);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+    font-size:14px;
+  }
+  #app{display:flex; min-height:100vh;}
+
+  /* ===== 左側篩選（Slicer）面板 ===== */
+  #sidebar{
+    width:220px; flex:0 0 220px; background:var(--card);
+    border-right:1px solid var(--line); padding:20px 16px;
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  #sidebar h1{ font-size:16px; font-weight:700; margin:0 0 4px; }
+  #sidebar .sub{color:var(--text-sub); font-size:12px; margin-bottom:20px;}
+  .slicer-title{
+    font-size:11px; font-weight:700; letter-spacing:.04em; color:var(--text-sub);
+    text-transform:uppercase; margin:18px 0 8px;
+  }
+  .slicer-list{display:flex; flex-direction:column; gap:3px; max-height:260px; overflow-y:auto;}
+  .slicer-item{
+    padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px;
+    border:1px solid transparent; user-select:none;
+  }
+  .slicer-item:hover{background:#F7F6F4;}
+  .slicer-item.active{ background:#EAF0FF; border-color:var(--blue); font-weight:600; color:var(--blue); }
+  #clearFilters{
+    margin-top:16px; width:100%; padding:9px; font-size:12px;
+    background:var(--bg); border:1px solid var(--line); border-radius:8px; cursor:pointer;
+  }
+  #clearFilters:hover{background:#EDEBE9;}
+
+  .range-box{background:#FAF9F8; border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:6px;}
+  .range-box select{
+    width:100%; padding:6px 8px; border-radius:6px; border:1px solid var(--line);
+    font-size:12.5px; margin-bottom:8px; background:#fff; color:var(--text);
+  }
+  .quarter-btns{display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-bottom:10px;}
+  .qbtn{
+    padding:6px 0; font-size:11.5px; border:1px solid var(--line); border-radius:6px;
+    background:#fff; cursor:pointer; color:var(--text);
+  }
+  .qbtn:hover{background:#EAF0FF; border-color:var(--blue);}
+  .qbtn.active{background:var(--blue); border-color:var(--blue); color:#fff; font-weight:700;}
+  .range-row{display:flex; align-items:center; gap:6px; margin-bottom:8px;}
+  .range-row select{margin-bottom:0;}
+  .range-row span{color:var(--text-sub); font-size:12px;}
+  #applyRange{
+    width:100%; padding:8px; font-size:12.5px; background:var(--blue); color:#fff;
+    border:none; border-radius:6px; cursor:pointer; font-weight:600;
+  }
+  #applyRange:hover{background:#2F5BC0;}
+
+  /* ===== 主畫面 ===== */
+  #main{flex:1; padding:22px 26px 40px; min-width:0;}
+  #status{color:var(--text-sub); font-size:13px; padding:40px; text-align:center;}
+
+  .header-row{display:flex; align-items:center; gap:10px; margin-bottom:2px;}
+  .header-title{font-size:22px; font-weight:800;}
+  .badge{
+    background:var(--blue); color:#fff; font-size:12px; font-weight:700;
+    padding:3px 10px; border-radius:999px;
+  }
+  .header-sub{color:var(--text-sub); font-size:12.5px; margin:4px 0 18px;}
+
+  /* KPI + 佔比並排區 */
+  .top-grid{display:grid; grid-template-columns:250px 1fr; gap:14px; margin-bottom:14px;}
+  .kpi-col{display:flex; flex-direction:column; gap:10px;}
+  .kpi-card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:14px 16px; display:flex; align-items:center; justify-content:space-between;
+    border-left:5px solid var(--blue);
+  }
+  .kpi-card.c-orange{border-left-color:var(--orange);}
+  .kpi-card.c-gold{border-left-color:var(--gold);}
+  .kpi-card.c-purple{border-left-color:var(--purple);}
+  .kpi-card.c-teal{border-left-color:var(--teal);}
+  .kpi-card .num{font-size:26px; font-weight:800; line-height:1.1;}
+  .kpi-card .label{font-size:12px; color:var(--text-sub); margin-top:3px;}
+  .kpi-icon{font-size:20px; opacity:.55;}
+
+  .share-card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px;
+  }
+  .share-card h3{margin:0 0 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .share-card h3::before{content:""; width:4px; height:14px; background:var(--blue); border-radius:2px; display:inline-block;}
+  .share-list{display:flex; flex-direction:column; gap:9px; max-height:340px; overflow-y:auto;}
+  .share-row{display:grid; grid-template-columns:16px 84px 118px 48px 1fr; align-items:center; gap:8px; font-size:12.5px;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+  .share-name{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .share-count{color:var(--text-sub); text-align:right; white-space:nowrap;}
+  .share-pct{color:var(--blue) !important; font-weight:700; text-align:right; white-space:nowrap;}
+  .bar-track{background:#EFEEEC; border-radius:999px; height:7px; overflow:hidden; display:block;}
+  .bar-fill{height:100%; border-radius:999px; display:block;}
+
+  /* 圖表雙欄 */
+  .chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;}
+  .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; }
+  .card h3{margin:0 0 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .card h3::before{content:""; width:4px; height:14px; background:var(--blue); border-radius:2px; display:inline-block;}
+  .chart-wrap{position:relative; height:230px;}
+  .empty-note{color:var(--text-sub); font-size:12px; text-align:center; padding:30px 0;}
+
+  /* 排行榜表格 */
+  .rank-table-wrap{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px;}
+  .rank-table-wrap h3{margin:0 0 12px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .rank-table-wrap h3::before{content:""; width:4px; height:14px; background:var(--blue); border-radius:2px; display:inline-block;}
+  table.rank{width:100%; border-collapse:collapse; font-size:13px;}
+  table.rank th{
+    text-align:left; color:var(--text-sub); font-weight:600; font-size:11.5px;
+    padding:6px 10px; border-bottom:1px solid var(--line);
+  }
+  table.rank td{padding:9px 10px; border-bottom:1px solid var(--line);}
+  table.rank tr:last-child td{border-bottom:none;}
+  .rank-badge{
+    width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:#fff; background:#C9C6C2;
+  }
+  .rank-badge.r1{background:#F0B93E;}
+  .rank-badge.r2{background:#B7B4B0;}
+  .rank-badge.r3{background:#C67C3E;}
+  .rank-pct{color:var(--blue); font-weight:700;}
 </style>
 </head>
 <body>
 <div id="app">
-  <h1>🏥 臨床技能教室 教具外借儀表板</h1>
-  <div class="sub">資料來源：借用系統 getStats（即時統計）</div>
-  <div id="status">讀取資料中…</div>
-  <div id="content" style="display:none;">
+  <div id="sidebar">
+    <h1>臨床技能教室</h1>
+    <div class="sub">使用統計儀表板</div>
 
-    <div class="kpi-row" id="kpiRow"></div>
+    <div class="slicer-title">年月（單月）</div>
+    <div id="monthSlicer" class="slicer-list"></div>
 
-    <div class="chart-grid">
-      <div class="card">
-        <h3>🏆 外借教具借用次數排行（前 10 名）</h3>
-        <div class="chart-wrap tall"><canvas id="chartEquip"></canvas></div>
+    <div class="slicer-title">自訂查詢區間</div>
+    <div class="range-box">
+      <select id="yearSelect"></select>
+      <div class="quarter-btns">
+        <button class="qbtn" data-q="1">Q1</button>
+        <button class="qbtn" data-q="2">Q2</button>
+        <button class="qbtn" data-q="3">Q3</button>
+        <button class="qbtn" data-q="4">Q4</button>
+        <button class="qbtn" data-q="all">全年</button>
       </div>
-      <div class="card">
-        <h3>👩‍⚕️ 使用職類別統計</h3>
-        <div class="chart-wrap tall"><canvas id="chartJob"></canvas></div>
+      <div class="range-row">
+        <select id="rangeStartSelect"></select>
+        <span>～</span>
+        <select id="rangeEndSelect"></select>
       </div>
+      <button id="applyRange">套用區間</button>
     </div>
 
-    <div class="chart-grid">
-      <div class="card">
-        <h3>📋 借用用途統計</h3>
-        <div class="chart-wrap"><canvas id="chartPurpose"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>🏷️ 快速主題標籤點擊排行（前 10 名）</h3>
-        <div class="chart-wrap tall"><canvas id="chartTag"></canvas></div>
-      </div>
-    </div>
+    <div class="slicer-title">使用職類</div>
+    <div id="jobSlicer" class="slicer-list"></div>
 
-    <div class="chart-grid">
-      <div class="card">
-        <h3>📅 每週借用量</h3>
-        <div class="chart-wrap"><canvas id="chartWeek"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>📅 每月借用量</h3>
-        <div class="chart-wrap"><canvas id="chartMonth"></canvas></div>
-      </div>
-    </div>
+    <button id="clearFilters">清除篩選</button>
+  </div>
 
+  <div id="main">
+    <div id="status">讀取資料中…</div>
+    <div id="content" style="display:none;">
+
+      <div class="header-row">
+        <div class="header-title" id="headerTitle">全部</div>
+        <div class="badge" id="headerBadge">2025年4月</div>
+      </div>
+      <div class="header-sub" id="headerSub"></div>
+
+      <div class="top-grid">
+        <div class="kpi-col" id="kpiCol"></div>
+        <div class="share-card">
+          <h3>職類別使用佔比</h3>
+          <div class="share-list" id="shareList"></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="card">
+          <h3>各教室使用人次</h3>
+          <div class="chart-wrap"><canvas id="chartRoom"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>外借使用職類人次</h3>
+          <div class="chart-wrap"><canvas id="chartLoanJob"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="rank-table-wrap">
+          <h3>教具使用人次排行（前 10 名）</h3>
+          <div id="equipRankTable"></div>
+        </div>
+        <div class="rank-table-wrap">
+          <h3>外借教具排行（前 10 名）</h3>
+          <div id="loanRankTable"></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="card">
+          <h3>急救教具使用職類人次</h3>
+          <div class="chart-wrap"><canvas id="chartFirstAid"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>使用滿意度</h3>
+          <div id="satisfactionBlock"></div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
 <script>
-// ============ 設定：借用系統 Apps Script Web App 的 /exec 網址 ============
+// ============ 設定：填入 Apps Script Web App 的 /exec 網址 ============
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbzzJFb0-P434RyouplZhLcidasMJn_nDoJWk6vU5Do8HVLbzaGhlJNb7swn1Xxv31qFMg/exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbw5er71Tz3Wp1g4Eessrl1f0oEw_oLNqrVSJB_3b45su95BNQGr0cOcpmclwDiMzhKz/exec'
 };
-// ==========================================================================
+// 借用系統（新版 getStats）：只用來補「外借教具排行」的借用次數，其餘圖表不受影響
+const STATS_API_URL = 'https://script.google.com/macros/s/AKfycbzzJFb0-P434RyouplZhLcidasMJn_nDoJWk6vU5Do8HVLbzaGhlJNb7swn1Xxv31qFMg/exec';
+// ======================================================================
 
 const COLORS = ['#3E6FD9','#2FA98C','#F0883E','#F0B93E','#8B6FD9','#5BC0DE','#D9534F','#8B8B8B','#6EA8FE','#C9A227'];
+
+let DATA = null;
+let LOAN_COUNT_BY_EQUIPMENT = {}; // 借用次數（來自新版 getStats，跟舊資料源的「借用人次」是不同指標）
+let rangeStart = null; // 查詢區間起始月份，例如 '2025-04'
+let rangeEnd = null;   // 查詢區間結束月份，單月查詢時 rangeStart === rangeEnd
+let selectedJob = null;
 let charts = {};
 
-// 自訂 Chart.js 外掛：在每根長條上方畫出數字，不需要另外載入 datalabels 套件
+// 自訂 Chart.js 外掛：在每根長條上方畫出數字，套用一次就對全部長條圖生效，不用改各個 renderBar 呼叫
 const barValueLabelPlugin = {
   id: 'barValueLabel',
   afterDatasetsDraw(chart) {
@@ -125,20 +291,420 @@ const barValueLabelPlugin = {
 };
 Chart.register(barValueLabelPlugin);
 
+async function init() {
+  const statusEl = document.getElementById('status');
+  try {
+    if (!CONFIG.API_URL || CONFIG.API_URL.indexOf('PASTE_YOUR') > -1) {
+      statusEl.innerHTML = '尚未設定 API_URL。請把 Apps Script 部署後的 <code>/exec</code> 網址填入 dashboard.html 最下方 CONFIG.API_URL 後重新整理。';
+      return;
+    }
+    const res = await fetch(CONFIG.API_URL);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    DATA = json;
+
+    // 額外讀取借用次數（新版 getStats），失敗也不影響其餘圖表正常顯示
+    try {
+      const statsRes = await fetch(STATS_API_URL + '?action=getStats');
+      const stats = await statsRes.json();
+      if (stats.success && Array.isArray(stats.equipmentRanking)) {
+        stats.equipmentRanking.forEach(item => { LOAN_COUNT_BY_EQUIPMENT[item.name] = item.count; });
+      }
+    } catch (e) { /* 忽略，外借教具排行會只顯示借用人次 */ }
+
+    if (!DATA.months || DATA.months.length === 0) {
+      statusEl.textContent = '目前沒有可顯示的資料。';
+      return;
+    }
+    const latestMonth = DATA.months[DATA.months.length - 1];
+    rangeStart = latestMonth;
+    rangeEnd = latestMonth;
+    buildMonthSlicer();
+    buildJobSlicer();
+    buildRangeControls();
+    render();
+    statusEl.style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  } catch (err) {
+    statusEl.innerHTML = '資料讀取失敗：' + err.message + '<br>請確認 Apps Script 已部署為網頁應用程式，且存取權限允許讀取。';
+  }
+}
+
+function buildMonthSlicer() {
+  const wrap = document.getElementById('monthSlicer');
+  wrap.innerHTML = '';
+  DATA.months.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'slicer-item' + (rangeStart === m && rangeEnd === m ? ' active' : '');
+    div.textContent = formatMonthLabel(m);
+    div.onclick = () => { rangeStart = m; rangeEnd = m; render(); highlightSlicers(); };
+    div.dataset.month = m;
+    wrap.appendChild(div);
+  });
+}
+
+function buildRangeControls() {
+  const years = Array.from(new Set(DATA.months.map(m => m.split('-')[0]))).sort();
+  const yearSelect = document.getElementById('yearSelect');
+  yearSelect.innerHTML = years.map(y => '<option value="' + y + '">' + y + '年</option>').join('');
+  yearSelect.value = rangeEnd.split('-')[0];
+
+  const startSelect = document.getElementById('rangeStartSelect');
+  const endSelect = document.getElementById('rangeEndSelect');
+  const opts = DATA.months.map(m => '<option value="' + m + '">' + formatMonthLabel(m) + '</option>').join('');
+  startSelect.innerHTML = opts;
+  endSelect.innerHTML = opts;
+  startSelect.value = rangeStart;
+  endSelect.value = rangeEnd;
+
+  document.querySelectorAll('.qbtn').forEach(btn => {
+    btn.onclick = () => {
+      const year = yearSelect.value;
+      const q = btn.dataset.q;
+      let startMo, endMo;
+      if (q === 'all') { startMo = '01'; endMo = '12'; }
+      else {
+        const qn = parseInt(q, 10);
+        startMo = String((qn - 1) * 3 + 1).padStart(2, '0');
+        endMo = String(qn * 3).padStart(2, '0');
+      }
+      const candidateStart = year + '-' + startMo;
+      const candidateEnd = year + '-' + endMo;
+      // 只取該區間內實際存在資料的月份，避免選到超出資料範圍的空區間
+      const monthsInRange = DATA.months.filter(m => m >= candidateStart && m <= candidateEnd);
+      if (monthsInRange.length === 0) {
+        alert(year + '年這段期間目前沒有資料');
+        return;
+      }
+      rangeStart = monthsInRange[0];
+      rangeEnd = monthsInRange[monthsInRange.length - 1];
+      startSelect.value = rangeStart;
+      endSelect.value = rangeEnd;
+      render();
+      highlightSlicers();
+    };
+  });
+
+  document.getElementById('applyRange').onclick = () => {
+    const s = startSelect.value, e = endSelect.value;
+    if (s > e) { alert('起始月份不能晚於結束月份'); return; }
+    rangeStart = s;
+    rangeEnd = e;
+    render();
+    highlightSlicers();
+  };
+}
+
+function buildJobSlicer() {
+  const wrap = document.getElementById('jobSlicer');
+  wrap.innerHTML = '';
+  const jobs = DATA.jobCategories || [];
+  if (selectedJob && jobs.indexOf(selectedJob) === -1) selectedJob = null;
+  jobs.forEach(j => {
+    const div = document.createElement('div');
+    div.className = 'slicer-item' + (j === selectedJob ? ' active' : '');
+    div.textContent = j;
+    div.onclick = () => {
+      selectedJob = (selectedJob === j) ? null : j;
+      render();
+      highlightSlicers();
+    };
+    wrap.appendChild(div);
+  });
+}
+
+function highlightSlicers() {
+  document.querySelectorAll('#monthSlicer .slicer-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.month === rangeStart && el.dataset.month === rangeEnd);
+  });
+  document.querySelectorAll('#jobSlicer .slicer-item').forEach(el => {
+    el.classList.toggle('active', el.textContent === selectedJob);
+  });
+  document.querySelectorAll('.qbtn').forEach(btn => btn.classList.remove('active'));
+}
+
+document.getElementById('clearFilters').onclick = () => {
+  selectedJob = null;
+  rangeStart = DATA.months[DATA.months.length - 1];
+  rangeEnd = rangeStart;
+  document.getElementById('rangeStartSelect').value = rangeStart;
+  document.getElementById('rangeEndSelect').value = rangeEnd;
+  render();
+  highlightSlicers();
+};
+
+function formatMonthLabel(m) {
+  const [y, mo] = m.split('-');
+  return y + '年' + parseInt(mo, 10) + '月';
+}
+
+function sumValues(obj) {
+  return Object.values(obj || {}).reduce((a, b) => a + b, 0);
+}
+
+function mergeDict(target, source) {
+  Object.entries(source || {}).forEach(([k, v]) => { target[k] = (target[k] || 0) + v; });
+}
+
+function emptyJobBucket() {
+  return {
+    roomUsage: {}, roomVisits: {}, equipmentUsage: {}, equipmentVisits: {},
+    firstAidCount: 0, firstAidVisits: 0,
+    loanByEquipment: {}, loanCount: 0,
+    satisfaction: { venueSum: 0, venueWeight: 0, equipSum: 0, equipWeight: 0, overallSum: 0, overallWeight: 0 }
+  };
+}
+
+function finalizeSatisfaction(s) {
+  const r = v => v !== null && v !== undefined ? Math.round(v * 100) / 100 : null;
+  return {
+    venueAvg: s.venueWeight ? r(s.venueSum / s.venueWeight) : null,
+    equipAvg: s.equipWeight ? r(s.equipSum / s.equipWeight) : null,
+    overallAvg: s.overallWeight ? r(s.overallSum / s.overallWeight) : null,
+    responseCount: s.overallWeight
+  };
+}
+
+// 合併查詢區間內所有月份的資料（單月查詢時，區間只有一個月，等同於原本的單月資料）
+function mergeMonths(monthKeys) {
+  const merged = {
+    roomUsage: {}, roomVisits: {}, equipmentUsage: {}, equipmentVisits: {},
+    jobCategoryUsage: {}, jobCategoryVisits: {},
+    firstAidByJobCategory: {}, firstAidVisitsByJobCategory: {},
+    loanByEquipment: {}, loanByJobCategory: {},
+    satisfaction: { venueSum: 0, venueWeight: 0, equipSum: 0, equipWeight: 0, overallSum: 0, overallWeight: 0 },
+    byJobCategory: {}
+  };
+
+  monthKeys.forEach(m => {
+    const md = DATA.byMonth[m];
+    if (!md) return;
+    mergeDict(merged.roomUsage, md.roomUsage);
+    mergeDict(merged.roomVisits, md.roomVisits);
+    mergeDict(merged.equipmentUsage, md.equipmentUsage);
+    mergeDict(merged.equipmentVisits, md.equipmentVisits);
+    mergeDict(merged.jobCategoryUsage, md.jobCategoryUsage);
+    mergeDict(merged.jobCategoryVisits, md.jobCategoryVisits);
+    mergeDict(merged.firstAidByJobCategory, md.firstAidByJobCategory);
+    mergeDict(merged.firstAidVisitsByJobCategory, md.firstAidVisitsByJobCategory);
+    mergeDict(merged.loanByEquipment, md.loanByEquipment);
+    mergeDict(merged.loanByJobCategory, md.loanByJobCategory);
+
+    const w = (md.satisfaction && md.satisfaction.responseCount) || 0;
+    if (w > 0) {
+      if (md.satisfaction.venueAvg !== null) { merged.satisfaction.venueSum += md.satisfaction.venueAvg * w; merged.satisfaction.venueWeight += w; }
+      if (md.satisfaction.equipAvg !== null) { merged.satisfaction.equipSum += md.satisfaction.equipAvg * w; merged.satisfaction.equipWeight += w; }
+      if (md.satisfaction.overallAvg !== null) { merged.satisfaction.overallSum += md.satisfaction.overallAvg * w; merged.satisfaction.overallWeight += w; }
+    }
+
+    Object.keys(md.byJobCategory || {}).forEach(job => {
+      const jb = md.byJobCategory[job];
+      if (!merged.byJobCategory[job]) merged.byJobCategory[job] = emptyJobBucket();
+      const mj = merged.byJobCategory[job];
+      mergeDict(mj.roomUsage, jb.roomUsage);
+      mergeDict(mj.roomVisits, jb.roomVisits);
+      mergeDict(mj.equipmentUsage, jb.equipmentUsage);
+      mergeDict(mj.equipmentVisits, jb.equipmentVisits);
+      mj.firstAidCount += jb.firstAidCount || 0;
+      mj.firstAidVisits += jb.firstAidVisits || 0;
+      mergeDict(mj.loanByEquipment, jb.loanByEquipment);
+      mj.loanCount += jb.loanCount || 0;
+
+      const jw = (jb.satisfaction && jb.satisfaction.responseCount) || 0;
+      if (jw > 0) {
+        if (jb.satisfaction.venueAvg !== null) { mj.satisfaction.venueSum += jb.satisfaction.venueAvg * jw; mj.satisfaction.venueWeight += jw; }
+        if (jb.satisfaction.equipAvg !== null) { mj.satisfaction.equipSum += jb.satisfaction.equipAvg * jw; mj.satisfaction.equipWeight += jw; }
+        if (jb.satisfaction.overallAvg !== null) { mj.satisfaction.overallSum += jb.satisfaction.overallAvg * jw; mj.satisfaction.overallWeight += jw; }
+      }
+    });
+  });
+
+  merged.satisfaction = finalizeSatisfaction(merged.satisfaction);
+  Object.keys(merged.byJobCategory).forEach(job => {
+    merged.byJobCategory[job].satisfaction = finalizeSatisfaction(merged.byJobCategory[job].satisfaction);
+  });
+
+  return merged;
+}
+
+function activeMonthKeys() {
+  return (DATA.months || []).filter(m => m >= rangeStart && m <= rangeEnd);
+}
+
+function rangeLabel() {
+  return rangeStart === rangeEnd ? formatMonthLabel(rangeStart) : (formatMonthLabel(rangeStart) + ' ～ ' + formatMonthLabel(rangeEnd));
+}
+
+function currentSlice() {
+  const months = activeMonthKeys();
+  if (months.length === 0) return null;
+  const monthData = mergeMonths(months);
+  if (selectedJob && monthData.byJobCategory[selectedJob]) {
+    const jb = monthData.byJobCategory[selectedJob];
+    return {
+      roomUsage: jb.roomUsage,
+      roomVisits: jb.roomVisits,
+      equipmentUsage: jb.equipmentUsage,
+      equipmentVisits: jb.equipmentVisits,
+      jobCategoryUsage: { [selectedJob]: sumValues(jb.roomUsage) },
+      jobCategoryVisits: { [selectedJob]: sumValues(jb.roomVisits) },
+      firstAidByJobCategory: { [selectedJob]: jb.firstAidCount },
+      firstAidVisitsByJobCategory: { [selectedJob]: jb.firstAidVisits },
+      loanByEquipment: jb.loanByEquipment,
+      loanByJobCategory: { [selectedJob]: jb.loanCount },
+      satisfaction: jb.satisfaction
+    };
+  }
+  return monthData;
+}
+
+function render() {
+  const slice = currentSlice();
+  if (!slice) return;
+
+  document.getElementById('headerTitle').textContent = selectedJob || '全部';
+  document.getElementById('headerBadge').textContent = rangeLabel();
+  const roomTotal = sumValues(slice.roomUsage);
+  const loanTotal = sumValues(slice.loanByJobCategory);
+  document.getElementById('headerSub').textContent =
+    rangeLabel() + (selectedJob ? ' ' + selectedJob + ' 職類' : ' 全部職類') +
+    '使用紀錄統計，教室共 ' + roomTotal + ' 人次、外借共 ' + loanTotal + ' 人次';
+
+  renderKPI(slice);
+  renderShareList(slice.jobCategoryUsage, slice.jobCategoryVisits);
+  renderBar2('chartRoom', slice.roomUsage, slice.roomVisits, '人次', '次數');
+  renderBar('chartLoanJob', slice.loanByJobCategory, '人次');
+  renderRankTable2('equipRankTable', slice.equipmentUsage, slice.equipmentVisits, '使用人次', '使用次數');
+  renderRankTable2('loanRankTable', slice.loanByEquipment, LOAN_COUNT_BY_EQUIPMENT, '借用人次', '借用次數');
+  renderBar2('chartFirstAid', slice.firstAidByJobCategory, slice.firstAidVisitsByJobCategory, '人次', '次數');
+  renderSatisfaction(slice.satisfaction);
+}
+
+function renderKPI(slice) {
+  const roomTotal = sumValues(slice.roomUsage);
+  const roomVisitTotal = sumValues(slice.roomVisits);
+  const loanTotal = sumValues(slice.loanByJobCategory);
+  const equipKinds = Object.keys(slice.equipmentUsage || {}).length;
+  const satOverall = slice.satisfaction ? slice.satisfaction.overallAvg : null;
+  const satScore100 = (satOverall !== null && satOverall !== undefined) ? satOverall * 20 : null;
+
+  const kpis = [
+    { num: roomTotal, label: '教室使用人次', icon: '📋', cls: '' },
+    { num: roomVisitTotal, label: '教室使用次數', icon: '🔁', cls: 'c-teal' },
+    { num: loanTotal, label: '外借使用人次', icon: '📦', cls: 'c-orange' },
+    { num: equipKinds, label: '使用教具品項數', icon: '🧰', cls: 'c-gold' },
+    { num: satScore100 !== null ? satScore100.toFixed(1) : '—', label: '滿意度總分（百分制）', icon: '⭐', cls: 'c-purple' }
+  ];
+
+  const col = document.getElementById('kpiCol');
+  col.innerHTML = '';
+  kpis.forEach(k => {
+    const div = document.createElement('div');
+    div.className = 'kpi-card ' + k.cls;
+    div.innerHTML = '<div><div class="num">' + k.num + '</div><div class="label">' + k.label + '</div></div><div class="kpi-icon">' + k.icon + '</div>';
+    col.appendChild(div);
+  });
+}
+
+function renderShareList(obj, visitsObj) {
+  const wrap = document.getElementById('shareList');
+  wrap.innerHTML = '';
+  const masterList = DATA.jobCategories || Object.keys(obj || {});
+  const entries = masterList.map(name => [name, (obj && obj[name]) || 0, (visitsObj && visitsObj[name]) || 0]);
+  const totalCount = entries.reduce((s, e) => s + e[1], 0);
+  const totalVisits = entries.reduce((s, e) => s + e[2], 0);
+  const useVisitsForPct = totalCount === 0 && totalVisits > 0; // 人次全部是 0（例如人數欄位空白）時，改用次數算佔比
+  const total = (useVisitsForPct ? totalVisits : totalCount) || 1;
+  if (entries.length === 0) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
+    return;
+  }
+  entries.forEach((e, i) => {
+    const [name, count, visits] = e;
+    const pct = Math.round(((useVisitsForPct ? visits : count) / total) * 1000) / 10;
+    const color = COLORS[i % COLORS.length];
+    const row = document.createElement('div');
+    row.className = 'share-row';
+    row.innerHTML =
+      '<span class="dot" style="background:' + color + '"></span>' +
+      '<span class="share-name">' + name + '</span>' +
+      '<span class="share-count">' + count + ' 人次<span style="color:var(--text-sub)">／' + visits + ' 次</span></span>' +
+      '<span class="share-pct">' + pct + '%</span>' +
+      '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%;background:' + color + '"></span></span>';
+    wrap.appendChild(row);
+  });
+}
+
+function renderRankTable(containerId, obj, unitLabel) {
+  const wrap = document.getElementById(containerId);
+  const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (entries.length === 0) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
+    return;
+  }
+  const total = Object.values(obj).reduce((a, b) => a + b, 0) || 1;
+  let html = '<table class="rank"><thead><tr><th></th><th>名稱</th><th style="text-align:right">' + unitLabel + '</th><th style="text-align:right">占比</th></tr></thead><tbody>';
+  entries.forEach((e, i) => {
+    const [name, count] = e;
+    const pct = Math.round((count / total) * 1000) / 10;
+    const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    html += '<tr><td><span class="rank-badge ' + rankCls + '">' + (i + 1) + '</span></td>' +
+      '<td>' + name + '</td>' +
+      '<td style="text-align:right">' + count + '</td>' +
+      '<td style="text-align:right" class="rank-pct">' + pct + '%</td></tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// 排行榜表格（三指標版）：使用人次、使用次數、占比，人次全 0 時改用次數排序與計算占比
+function renderRankTable2(containerId, obj, visitsObj, unitLabel, unitLabel2) {
+  const wrap = document.getElementById(containerId);
+  const names = Array.from(new Set([...Object.keys(obj || {}), ...Object.keys(visitsObj || {})]));
+  if (names.length === 0) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無資料</div>';
+    return;
+  }
+  const totalCount = Object.values(obj || {}).reduce((a, b) => a + b, 0);
+  const totalVisits = Object.values(visitsObj || {}).reduce((a, b) => a + b, 0);
+  const useVisits = totalCount === 0 && totalVisits > 0; // 人次全部是 0 時，改用次數排序與算占比
+  const total = (useVisits ? totalVisits : totalCount) || 1;
+  const entries = names
+    .map(name => [name, (obj && obj[name]) || 0, (visitsObj && visitsObj[name]) || 0])
+    .sort((a, b) => (useVisits ? b[2] - a[2] : b[1] - a[1]))
+    .slice(0, 10);
+  let html = '<table class="rank"><thead><tr><th></th><th>名稱</th>' +
+    '<th style="text-align:right">' + unitLabel + '</th>' +
+    '<th style="text-align:right">' + unitLabel2 + '</th>' +
+    '<th style="text-align:right">占比</th></tr></thead><tbody>';
+  entries.forEach((e, i) => {
+    const [name, count, visits] = e;
+    const pct = Math.round(((useVisits ? visits : count) / total) * 1000) / 10;
+    const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    html += '<tr><td><span class="rank-badge ' + rankCls + '">' + (i + 1) + '</span></td>' +
+      '<td>' + name + '</td>' +
+      '<td style="text-align:right">' + count + '</td>' +
+      '<td style="text-align:right">' + visits + '</td>' +
+      '<td style="text-align:right" class="rank-pct">' + pct + '%</td></tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
 function destroyChart(id) {
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
 }
 
-function emptyIfNoData(canvasId, arr) {
+function emptyIfNoData(canvasId, obj) {
   const canvas = document.getElementById(canvasId);
-  const hasData = arr && arr.length > 0;
+  const hasData = obj && Object.keys(obj).length > 0;
   canvas.style.display = hasData ? 'block' : 'none';
   let note = canvas.parentElement.querySelector('.empty-note');
   if (!hasData) {
     if (!note) {
       note = document.createElement('div');
       note.className = 'empty-note';
-      note.textContent = '目前暫無資料';
+      note.textContent = '本篩選範圍暫無資料';
       canvas.parentElement.appendChild(note);
     }
   } else if (note) {
@@ -147,40 +713,16 @@ function emptyIfNoData(canvasId, arr) {
   return hasData;
 }
 
-// arr 格式統一是 [{name, count}, ...]（跟 getStats 回傳的排行/統計欄位一致）
-function renderRankBar(canvasId, arr, unitLabel, color) {
+function renderBar(canvasId, obj, unitLabel) {
   destroyChart(canvasId);
-  if (!emptyIfNoData(canvasId, arr)) return;
-  const labels = arr.map(x => x.name);
-  const values = arr.map(x => x.count);
+  if (!emptyIfNoData(canvasId, obj)) return;
+  const labels = Object.keys(obj);
+  const values = labels.map(l => obj[l]);
   charts[canvasId] = new Chart(document.getElementById(canvasId), {
     type: 'bar',
-    data: { labels, datasets: [{ label: unitLabel, data: values, backgroundColor: color || '#3E6FD9', borderRadius: 6, maxBarThickness: 40 }] },
-    options: {
-      indexAxis: 'y', // 橫向長條，名稱長的時候比較好讀
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { right: 28 } },
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#F0EFED' } },
-        y: { grid: { display: false } }
-      }
-    }
-  });
-}
-
-// 直向長條圖（用在每週/每月這種時間序列，依 name 順序顯示，不做由大到小排序）
-function renderTimeBar(canvasId, arr, unitLabel, color) {
-  destroyChart(canvasId);
-  if (!emptyIfNoData(canvasId, arr)) return;
-  const labels = arr.map(x => x.name);
-  const values = arr.map(x => x.count);
-  charts[canvasId] = new Chart(document.getElementById(canvasId), {
-    type: 'bar',
-    data: { labels, datasets: [{ label: unitLabel, data: values, backgroundColor: color || '#2FA98C', borderRadius: 6, maxBarThickness: 46 }] },
+    data: { labels, datasets: [{ label: unitLabel, data: values, backgroundColor: '#3E6FD9', borderRadius: 6, maxBarThickness: 46 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
-      layout: { padding: { top: 22 } },
       plugins: { legend: { display: false } },
       scales: {
         y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#F0EFED' } },
@@ -190,40 +732,67 @@ function renderTimeBar(canvasId, arr, unitLabel, color) {
   });
 }
 
-function renderKpis(stats) {
-  const row = document.getElementById('kpiRow');
-  const items = [
-    { num: stats.totalLoans, label: '總借用次數' },
-    { num: stats.totalHeadcount, label: '總使用人次' },
-    { num: (stats.equipmentRanking || []).length, label: '借用教具品項數' }
-  ];
-  row.innerHTML = items.map(it => `<div class="kpi"><div class="num">${it.num}</div><div class="label">${it.label}</div></div>`).join('');
-}
-
-async function loadStats() {
-  const statusEl = document.getElementById('status');
-  const contentEl = document.getElementById('content');
-  try {
-    const res = await fetch(CONFIG.API_URL + '?action=getStats&_ts=' + Date.now(), { cache: 'no-store' });
-    const stats = await res.json();
-    if (!stats.success) throw new Error(stats.message || '取得統計資料失敗');
-
-    renderKpis(stats);
-    renderRankBar('chartEquip', (stats.equipmentRanking || []).slice(0, 10), '借用次數', '#3E6FD9');
-    renderRankBar('chartJob', stats.jobCategoryStats || [], '人次', '#2FA98C');
-    renderRankBar('chartPurpose', stats.purposeStats || [], '次數', '#F0883E');
-    renderRankBar('chartTag', (stats.tagClickRanking || []).slice(0, 10), '點擊次數', '#8B6FD9');
-    renderTimeBar('chartWeek', stats.weeklyVolume || [], '借用次數', '#5BC0DE');
-    renderTimeBar('chartMonth', stats.monthlyVolume || [], '借用次數', '#D9534F');
-
-    statusEl.style.display = 'none';
-    contentEl.style.display = 'block';
-  } catch (err) {
-    statusEl.innerHTML = '<div class="error-note">讀取失敗：' + err.message + '<br>請確認 CONFIG.API_URL 是否為借用系統正確的部署網址。</div>';
+// 雙指標分組長條圖：同時顯示「人次」與「次數」兩組資料，方便比對人數欄位空白時的實際使用狀況
+function renderBar2(canvasId, obj, obj2, unitLabel, unitLabel2) {
+  destroyChart(canvasId);
+  const hasData = (obj && Object.keys(obj).length > 0) || (obj2 && Object.keys(obj2).length > 0);
+  const canvas = document.getElementById(canvasId);
+  canvas.style.display = hasData ? 'block' : 'none';
+  let note = canvas.parentElement.querySelector('.empty-note');
+  if (!hasData) {
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'empty-note';
+      note.textContent = '本篩選範圍暫無資料';
+      canvas.parentElement.appendChild(note);
+    }
+    return;
+  } else if (note) {
+    note.remove();
   }
+  const labelSet = new Set([...Object.keys(obj || {}), ...Object.keys(obj2 || {})]);
+  const labels = Array.from(labelSet);
+  const values1 = labels.map(l => (obj && obj[l]) || 0);
+  const values2 = labels.map(l => (obj2 && obj2[l]) || 0);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: unitLabel, data: values1, backgroundColor: '#3E6FD9', borderRadius: 6, maxBarThickness: 32 },
+        { label: unitLabel2, data: values2, backgroundColor: '#B9C9F2', borderRadius: 6, maxBarThickness: 32 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#F0EFED' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
 }
 
-loadStats();
+function renderSatisfaction(sat) {
+  const wrap = document.getElementById('satisfactionBlock');
+  if (!sat || !sat.responseCount) {
+    wrap.innerHTML = '<div class="empty-note">本篩選範圍暫無滿意度回覆</div>';
+    return;
+  }
+  const to100 = v => (v !== null && v !== undefined) ? (v * 20).toFixed(1) : '—';
+  const items = [
+    { label: '場地平均分數（百分制）', val: to100(sat.venueAvg), color: 'var(--blue)' },
+    { label: '設備平均分數（百分制）', val: to100(sat.equipAvg), color: 'var(--teal)' },
+    { label: '總分數（百分制）', val: to100(sat.overallAvg), color: 'var(--orange)' }
+  ];
+  wrap.innerHTML = '<div class="kpi-col" style="flex-direction:row; gap:12px;">' + items.map(i =>
+    '<div class="kpi-card" style="border-left-color:' + i.color + '; flex:1;"><div><div class="num">' +
+    i.val + '</div><div class="label">' + i.label + '</div></div></div>'
+  ).join('') + '</div>';
+}
+
+init();
 </script>
 </body>
 </html>
