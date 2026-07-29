@@ -230,6 +230,7 @@
         </div>
         <div class="rank-table-wrap">
           <h3>外借教具排行（前 10 名）</h3>
+          <div style="color:var(--text-sub);font-size:11.5px;margin:-6px 0 8px;">「借用人次」跟著左側月份篩選變動；「借用次數」是新舊系統合併後的全期間累計，兩者時間範圍不同，僅供各自參考</div>
           <div id="loanRankTable"></div>
         </div>
       </div>
@@ -575,7 +576,7 @@ function render() {
   renderBar2('chartRoom', slice.roomUsage, slice.roomVisits, '人次', '次數');
   renderBar('chartLoanJob', slice.loanByJobCategory, '人次');
   renderRankTable2('equipRankTable', slice.equipmentUsage, slice.equipmentVisits, '使用人次', '使用次數');
-  renderRankTable2('loanRankTable', slice.loanByEquipment, LOAN_COUNT_BY_EQUIPMENT, '借用人次', '借用次數');
+  renderRankTable2('loanRankTable', slice.loanByEquipment, LOAN_COUNT_BY_EQUIPMENT, '借用人次（所選月份）', '借用次數（全期間累計）');
   renderBar2('chartFirstAid', slice.firstAidByJobCategory, slice.firstAidVisitsByJobCategory, '人次', '次數');
   renderSatisfaction(slice.satisfaction);
 }
