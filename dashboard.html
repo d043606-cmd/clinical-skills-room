@@ -259,6 +259,8 @@ const STATS_API_URL = 'https://script.google.com/macros/s/AKfycbzzJFb0-P434Ryoup
 // ======================================================================
 
 const COLORS = ['#3E6FD9','#2FA98C','#F0883E','#F0B93E','#8B6FD9','#5BC0DE','#D9534F','#8B8B8B','#6EA8FE','#C9A227'];
+// 儀表板統計類別要排除的職類（不在篩選器、排行榜、圖表裡顯示）
+const EXCLUDED_JOB_CATEGORIES = ['放射', '行政科室'];
 
 let DATA = null;
 let loanRankFetchToken = 0; // 每次呼叫遞增，避免舊的非同步回應蓋掉新的（篩選器快速切換時）
@@ -389,7 +391,7 @@ function buildRangeControls() {
 function buildJobSlicer() {
   const wrap = document.getElementById('jobSlicer');
   wrap.innerHTML = '';
-  const jobs = DATA.jobCategories || [];
+  const jobs = (DATA.jobCategories || []).filter(j => EXCLUDED_JOB_CATEGORIES.indexOf(j) === -1);
   if (selectedJob && jobs.indexOf(selectedJob) === -1) selectedJob = null;
   jobs.forEach(j => {
     const div = document.createElement('div');
@@ -564,7 +566,7 @@ function render() {
   renderKPI(slice);
   renderShareList(slice.jobCategoryUsage, slice.jobCategoryVisits);
   renderBar2('chartRoom', slice.roomUsage, slice.roomVisits, '人次', '次數');
-  renderBar('chartLoanJob', slice.loanByJobCategory, '人次');
+  renderBar('chartLoanJob', omitExcludedJobs(slice.loanByJobCategory), '人次');
   renderRankTable2('equipRankTable', slice.equipmentUsage, slice.equipmentVisits, '使用人次', '使用次數');
   updateLoanRankTable(); // 非同步：依目前選取的月份/區間，即時向借用系統要「同一段期間」的合併人次+次數
   renderBar2('chartFirstAid', slice.firstAidByJobCategory, slice.firstAidVisitsByJobCategory, '人次', '次數');
@@ -600,7 +602,7 @@ function renderKPI(slice) {
 function renderShareList(obj, visitsObj) {
   const wrap = document.getElementById('shareList');
   wrap.innerHTML = '';
-  const masterList = DATA.jobCategories || Object.keys(obj || {});
+  const masterList = (DATA.jobCategories || Object.keys(obj || {})).filter(j => EXCLUDED_JOB_CATEGORIES.indexOf(j) === -1);
   const entries = masterList.map(name => [name, (obj && obj[name]) || 0, (visitsObj && visitsObj[name]) || 0]);
   const totalCount = entries.reduce((s, e) => s + e[1], 0);
   const totalVisits = entries.reduce((s, e) => s + e[2], 0);
@@ -687,6 +689,15 @@ function lastDayOfMonthStr(yyyyMM) {
   const [y, m] = yyyyMM.split('-').map(Number);
   const last = new Date(y, m, 0).getDate(); // month 是 1-12，傳入下個月的第0天=這個月最後一天
   return yyyyMM + '-' + String(last).padStart(2, '0');
+}
+
+// 回傳一份去掉 EXCLUDED_JOB_CATEGORIES 那幾個 key 的新物件，不動到原本的資料
+function omitExcludedJobs(obj) {
+  const result = {};
+  Object.keys(obj || {}).forEach(k => {
+    if (EXCLUDED_JOB_CATEGORIES.indexOf(k) === -1) result[k] = obj[k];
+  });
+  return result;
 }
 
 // 依目前左側篩選（月份 / 自訂區間）向借用系統要「同一段期間」的合併借用人次+借用次數，
