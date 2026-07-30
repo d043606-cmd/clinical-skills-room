@@ -569,7 +569,7 @@ function render() {
   renderBar('chartLoanJob', omitExcludedJobs(slice.loanByJobCategory), '人次');
   renderRankTable2('equipRankTable', slice.equipmentUsage, slice.equipmentVisits, '使用人次', '使用次數');
   updateLoanRankTable(); // 非同步：依目前選取的月份/區間，即時向借用系統要「同一段期間」的合併人次+次數
-  renderBar2('chartFirstAid', slice.firstAidByJobCategory, slice.firstAidVisitsByJobCategory, '人次', '次數');
+  renderBar2('chartFirstAid', omitExcludedJobs(slice.firstAidByJobCategory), omitExcludedJobs(slice.firstAidVisitsByJobCategory), '人次', '次數');
   renderSatisfaction(slice.satisfaction);
 }
 
