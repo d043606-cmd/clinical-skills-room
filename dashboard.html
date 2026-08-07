@@ -262,6 +262,12 @@ const COLORS = ['#3E6FD9','#2FA98C','#F0883E','#F0B93E','#8B6FD9','#5BC0DE','#D9
 // 儀表板統計類別要排除的職類（不在篩選器、排行榜、圖表裡顯示）
 const EXCLUDED_JOB_CATEGORIES = ['放射', '行政科室'];
 
+// 顯示用四捨五入：人次因為「同一列使用多間教室要平均分攤」而可能是小數（例如 8÷3），
+// 加總/計算時保留完整精確度不提早捨入，只在畫面顯示的最後一步四捨五入成整數
+function rnd(v) {
+  return Math.round(Number(v) || 0);
+}
+
 let DATA = null;
 let loanRankFetchToken = 0; // 每次呼叫遞增，避免舊的非同步回應蓋掉新的（篩選器快速切換時）
 let rangeStart = null; // 查詢區間起始月份，例如 '2025-04'
@@ -285,7 +291,7 @@ const barValueLabelPlugin = {
         ctx.font = '600 11px "Noto Sans TC", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(value, bar.x, bar.y - 4);
+        ctx.fillText(rnd(value), bar.x, bar.y - 4);
         ctx.restore();
       });
     });
@@ -582,9 +588,9 @@ function renderKPI(slice) {
   const satScore100 = (satOverall !== null && satOverall !== undefined) ? satOverall * 20 : null;
 
   const kpis = [
-    { num: roomTotal, label: '教室使用人次', icon: '📋', cls: '' },
-    { num: roomVisitTotal, label: '教室使用次數', icon: '🔁', cls: 'c-teal' },
-    { num: loanTotal, label: '外借使用人次', icon: '📦', cls: 'c-orange' },
+    { num: rnd(roomTotal), label: '教室使用人次', icon: '📋', cls: '' },
+    { num: rnd(roomVisitTotal), label: '教室使用次數', icon: '🔁', cls: 'c-teal' },
+    { num: rnd(loanTotal), label: '外借使用人次', icon: '📦', cls: 'c-orange' },
     { num: equipKinds, label: '使用教具品項數', icon: '🧰', cls: 'c-gold' },
     { num: satScore100 !== null ? satScore100.toFixed(1) : '—', label: '滿意度總分（百分制）', icon: '⭐', cls: 'c-purple' }
   ];
@@ -621,7 +627,7 @@ function renderShareList(obj, visitsObj) {
     row.innerHTML =
       '<span class="dot" style="background:' + color + '"></span>' +
       '<span class="share-name">' + name + '</span>' +
-      '<span class="share-count">' + count + ' 人次<span style="color:var(--text-sub)">／' + visits + ' 次</span></span>' +
+      '<span class="share-count">' + rnd(count) + ' 人次<span style="color:var(--text-sub)">／' + rnd(visits) + ' 次</span></span>' +
       '<span class="share-pct">' + pct + '%</span>' +
       '<span class="bar-track"><span class="bar-fill" style="width:' + pct + '%;background:' + color + '"></span></span>';
     wrap.appendChild(row);
@@ -643,7 +649,7 @@ function renderRankTable(containerId, obj, unitLabel) {
     const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
     html += '<tr><td><span class="rank-badge ' + rankCls + '">' + (i + 1) + '</span></td>' +
       '<td>' + name + '</td>' +
-      '<td style="text-align:right">' + count + '</td>' +
+      '<td style="text-align:right">' + rnd(count) + '</td>' +
       '<td style="text-align:right" class="rank-pct">' + pct + '%</td></tr>';
   });
   html += '</tbody></table>';
@@ -676,8 +682,8 @@ function renderRankTable2(containerId, obj, visitsObj, unitLabel, unitLabel2) {
     const rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
     html += '<tr><td><span class="rank-badge ' + rankCls + '">' + (i + 1) + '</span></td>' +
       '<td>' + name + '</td>' +
-      '<td style="text-align:right">' + count + '</td>' +
-      '<td style="text-align:right">' + visits + '</td>' +
+      '<td style="text-align:right">' + rnd(count) + '</td>' +
+      '<td style="text-align:right">' + rnd(visits) + '</td>' +
       '<td style="text-align:right" class="rank-pct">' + pct + '%</td></tr>';
   });
   html += '</tbody></table>';
@@ -756,7 +762,7 @@ function renderBar(canvasId, obj, unitLabel) {
   destroyChart(canvasId);
   if (!emptyIfNoData(canvasId, obj)) return;
   const labels = Object.keys(obj);
-  const values = labels.map(l => obj[l]);
+  const values = labels.map(l => rnd(obj[l]));
   charts[canvasId] = new Chart(document.getElementById(canvasId), {
     type: 'bar',
     data: { labels, datasets: [{ label: unitLabel, data: values, backgroundColor: '#3E6FD9', borderRadius: 6, maxBarThickness: 46 }] },
@@ -791,8 +797,8 @@ function renderBar2(canvasId, obj, obj2, unitLabel, unitLabel2) {
   }
   const labelSet = new Set([...Object.keys(obj || {}), ...Object.keys(obj2 || {})]);
   const labels = Array.from(labelSet);
-  const values1 = labels.map(l => (obj && obj[l]) || 0);
-  const values2 = labels.map(l => (obj2 && obj2[l]) || 0);
+  const values1 = labels.map(l => rnd((obj && obj[l]) || 0));
+  const values2 = labels.map(l => rnd((obj2 && obj2[l]) || 0));
   charts[canvasId] = new Chart(document.getElementById(canvasId), {
     type: 'bar',
     data: {
